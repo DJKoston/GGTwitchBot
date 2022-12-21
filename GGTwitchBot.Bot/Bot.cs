@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Timers;
 using TwitchLib.Api;
-using TwitchLib.Api.Core.Models.Undocumented.CSStreams;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;
 
