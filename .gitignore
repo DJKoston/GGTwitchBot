@@ -369,3 +369,5 @@ FodyWeavers.xsd
 /appsettings.Live.json
 /GGTwitchBot.Bot/appsettings.json
 /GGTwitchBot.Bot/appsettings.Production.json
+/GGTwitch.Bot/appsettings.json
+/GGTwitch.Bot/appsettings.Production.json
