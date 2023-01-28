@@ -5,8 +5,11 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Configurations>Debug;Release;Live_Build</Configurations>
+    <Configurations>Debug;Release</Configurations>
     <Version>1.5.0.2000</Version>
+    <UserSecretsId>29eaafd6-987c-420b-98c6-42f0c45f6b1a</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <AssemblyName>TwitchBot</AssemblyName>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Live_Build|AnyCPU'">
@@ -19,6 +22,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.12" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
     <PackageReference Include="PokeApiNet" Version="3.0.9" />
     <PackageReference Include="TwitchLib" Version="3.5.3" />
   </ItemGroup>
@@ -36,9 +40,5 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if $(ConfigurationName) == Release c:\SSHUpload\SSHUpload.exe ggtwitch" />
-  </Target>
 
 </Project>
