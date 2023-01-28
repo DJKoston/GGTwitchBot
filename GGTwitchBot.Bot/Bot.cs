@@ -20,6 +20,7 @@ namespace GGTwitchBot.Bot
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
+            Log("TurtleWasHere");
             twitchColor = ConsoleColor.DarkMagenta;
 
             var botVersion = typeof(Bot).Assembly.GetName().Version.ToString();
