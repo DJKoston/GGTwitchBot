@@ -2,13 +2,7 @@
 using GGTwitchBot.DAL.Models;
 using Newtonsoft.Json.Linq;
 using PokeApiNet;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Timers;
 using TwitchLib.Api;
-using TwitchLib.Client;
-using TwitchLib.Client.Events;
 
 namespace GGTwitchBot.Bot
 {
@@ -120,7 +114,7 @@ namespace GGTwitchBot.Bot
             var targetUserName = e.Command.ArgumentsAsString.Replace("@", "");
 
             //Remove when Beta is over
-            var betaTesterFile = File.ReadAllLines("/home/container/files/testers.txt");
+            var betaTesterFile = File.ReadAllLines("/home/container/testers.txt");
             var betaTesters = new List<string>(betaTesterFile);
 
             if (command == "ggcommands")
@@ -362,7 +356,7 @@ namespace GGTwitchBot.Bot
         private async void OnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
             //Remove when Beta is over
-            var betaTesterFile = File.ReadAllLines("/home/container/files/testers.txt");
+            var betaTesterFile = File.ReadAllLines("/home/container/testers.txt");
             var betaTesters = new List<string>(betaTesterFile);
 
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.ToLower().Contains("catch it using !pokecatch (winners revealed in 90s)"))
@@ -391,7 +385,7 @@ namespace GGTwitchBot.Bot
                             return;
                         }
 
-                        var weeklyFile = File.ReadAllLines("/home/container/files/weekly.txt");
+                        var weeklyFile = File.ReadAllLines("/home/container/weekly.txt");
                         var weeklys = new List<string>(weeklyFile);
                         weeklys.RemoveRange(0, 13);
 
