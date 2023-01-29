@@ -103,7 +103,7 @@ namespace GGTwitchBot.Bot
         {
             var userName = e.Command.ChatMessage.Username;
             var userDisplayName = e.Command.ChatMessage.DisplayName;
-            var streamerUserName = e.Command.ChatMessage.Channel;
+            var streamerUserName = e.Command.ChatMessage.Channel.ToLower();
             var isMod = e.Command.ChatMessage.IsModerator;
             var isBroadcaster = e.Command.ChatMessage.IsBroadcaster;
             var isSub = e.Command.ChatMessage.IsSubscriber;
@@ -111,11 +111,15 @@ namespace GGTwitchBot.Bot
             var argumentsAsList = e.Command.ArgumentsAsList;
             var argumentsCount = argumentsAsList.Count();
             var argumentsAsString = e.Command.ArgumentsAsString;
-            var targetUserName = e.Command.ArgumentsAsString.Replace("@", "");
+            var targetUserName = e.Command.ArgumentsAsString.ToLower().Replace("@", "");
 
-            //Remove when Beta is over
+            //Beta Testing
             var betaTesterFile = File.ReadAllLines("/home/container/testers.txt");
             var betaTesters = new List<string>(betaTesterFile);
+
+            //Whitelist
+            var whitelistFile = File.ReadAllLines("/home/container/whitelist.txt");
+            var whitelist = new List<string>(whitelistFile);
 
             if (command == "ggcommands")
             {
@@ -261,22 +265,42 @@ namespace GGTwitchBot.Bot
                 {
                     var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == userName);
 
-                    if (isStream == null)
+                    if (whitelist.Contains(userName))
                     {
-                        _streamService.NewStreamAsync(userName);
-                        GGTwitch.JoinChannel(userName);
+                        if (isStream == null)
+                        {
+                            _streamService.NewStreamAsync(userName);
+                            GGTwitch.JoinChannel(userName);
 
-                        GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to your channel! If you want me to leave, just type !ggleave in your channel.");
-                        GGSendMessage(userName, $"Hi there @{userDisplayName}, Just wanted to let you know, i'm here and waiting <3");
+                            GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to your channel! If you want me to leave, just type !ggleave in your channel.");
+                            GGSendMessage(userName, $"Hi there @{userDisplayName}, Just wanted to let you know, i'm here and waiting <3");
 
-                        return;
+                            return;
+                        }
+
+                        else
+                        {
+                            GGSendMessage(streamerUserName, "You already have GG-Bot in your channel. If you are experiencing issues, use !rejoin");
+
+                            return;
+                        }
                     }
 
                     else
                     {
-                        GGSendMessage(streamerUserName, "You already have GG-Bot in your channel. If you are experiencing issues, use !rejoin");
+                        if(isStream == null)
+                        {
+                            GGSendMessage(streamerUserName, "You are not currently whitelisted. Please contact DJKoston#0001 on Discord to be whitelisted.");
 
-                        return;
+                            return;
+                        }
+
+                        else
+                        {
+                            GGSendMessage(streamerUserName, "You already have GG-Bot in your channel. You are not on our whitelist so please contact DJKoston#0001 on Discord to be whitelisted then use !rejoin");
+
+                            return;
+                        }
                     }
                 }
 
@@ -284,22 +308,42 @@ namespace GGTwitchBot.Bot
                 {
                     var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == targetUserName.ToLower());
 
-                    if (isStream == null)
+                    if (whitelist.Contains(targetUserName))
                     {
-                        _streamService.NewStreamAsync(targetUserName.ToLower());
-                        GGTwitch.JoinChannel(targetUserName);
+                        if (isStream == null)
+                        {
+                            _streamService.NewStreamAsync(targetUserName.ToLower());
+                            GGTwitch.JoinChannel(targetUserName);
 
-                        GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to {targetUserName}! If you want me to leave, just type !ggleave in their chat.");
-                        GGSendMessage(targetUserName, $"Hi there @{targetUserName}, {userDisplayName} just added me to your channel, If you don't want me here, you or a mod can do !ggleave and i'll go away. <3");
+                            GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to {targetUserName}! If you want me to leave, just type !ggleave in their chat.");
+                            GGSendMessage(targetUserName, $"Hi there @{targetUserName}, {userDisplayName} just added me to your channel, If you don't want me here, you or a mod can do !ggleave and i'll go away. <3");
 
-                        return;
+                            return;
+                        }
+
+                        else
+                        {
+                            GGSendMessage(streamerUserName, "GG-Bot is already in this channel. If they are experiencing issues, use !rejoin @username");
+
+                            return;
+                        }
                     }
 
                     else
                     {
-                        GGSendMessage(streamerUserName, "GG-Bot is already in this channel. If they are experiencing issues, use !rejoin @username");
+                        if (isStream == null)
+                        {
+                            GGSendMessage(streamerUserName, "The channel you are trying to add is not currently whitelisted. Please contact DJKoston#0001 on Discord to be whitelisted.");
 
-                        return;
+                            return;
+                        }
+
+                        else
+                        {
+                            GGSendMessage(streamerUserName, $"This channel already has GG-Bot. They are not on our whitelist so please contact DJKoston#0001 on Discord to be whitelisted then use !rejoin @{targetUserName}");
+
+                            return;
+                        }
                     }
                 }
             }
@@ -331,23 +375,44 @@ namespace GGTwitchBot.Bot
                 {
                     var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == userName);
 
-                    if (isStream == null)
+                    if (whitelist.Contains(userName))
                     {
-                        GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, this bot is not currently in your channel. If you are whitelisted, please do !join for me to join your channel.");
+                        if (isStream == null)
+                        {
+                            GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, this bot is not currently in your channel. You are whitelisted, so please do !join for me to join your channel.");
 
-                        return;
+                            return;
+                        }
+
+                        else
+                        {
+                            GGSendMessage(streamerUserName, $"I am just about to reconnect to your channel @{userDisplayName}, give me a moment.");
+
+                            GGTwitch.LeaveChannel(userName);
+                            await Task.Delay(1000);
+                            GGTwitch.JoinChannel(userName);
+
+                            GGSendMessage(streamerUserName, $"I have reconnected to your channel @{userDisplayName}, if you still have an issue, please contact DJKoston#0001 on Discord.");
+
+                            return;
+                        }
                     }
 
                     else
                     {
-                        GGSendMessage(streamerUserName, $"I am just about to reconnect to your channel @{userDisplayName}, give me a moment.");
+                        if (isStream == null)
+                        {
+                            GGSendMessage(streamerUserName, "You are not currently whitelisted. Please contact DJKoston#0001 on Discord to be whitelisted.");
 
-                        GGTwitch.LeaveChannel(userName);
-                        GGTwitch.JoinChannel(userName);
+                            return;
+                        }
 
-                        GGSendMessage(streamerUserName, $"I have reconnected to your channel @{userDisplayName}, if you still have an issue, please contact DJKoston#0001 on Discord.");
+                        else
+                        {
+                            GGSendMessage(streamerUserName, "You already have GG-Bot in your channel. You are not on our whitelist so please contact DJKoston#0001 on Discord to be whitelisted then use !rejoin");
 
-                        return;
+                            return;
+                        }
                     }
                 }
 
@@ -355,23 +420,43 @@ namespace GGTwitchBot.Bot
                 {
                     var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == targetUserName.ToLower());
 
-                    if (isStream == null)
+                    if (whitelist.Contains(targetUserName))
                     {
-                        GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, this bot is not currently in {targetUserName}. If they are whitelisted, please do !join @{targetUserName} for me to join their channel.");
+                        if (isStream == null)
+                        {
+                            GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, this bot is not currently in {targetUserName}. They are whitelisted, so please do !join @{targetUserName} for me to join their channel.");
 
-                        return;
+                            return;
+                        }
+
+                        else
+                        {
+                            GGSendMessage(streamerUserName, $"I am just about to reconnect to {targetUserName}'s channel @{userDisplayName}, give me a moment.");
+
+                            GGTwitch.LeaveChannel(userName);
+                            GGTwitch.JoinChannel(userName);
+
+                            GGSendMessage(streamerUserName, $"I have reconnected to {targetUserName}'s channel @{userDisplayName}, if they still have an issue, please contact DJKoston#0001 on Discord.");
+
+                            return;
+                        }
                     }
 
                     else
                     {
-                        GGSendMessage(streamerUserName, $"I am just about to reconnect to {targetUserName}'s channel @{userDisplayName}, give me a moment.");
+                        if (isStream == null)
+                        {
+                            GGSendMessage(streamerUserName, "The channel you are trying to add is not currently whitelisted. Please contact DJKoston#0001 on Discord to be whitelisted.");
 
-                        GGTwitch.LeaveChannel(userName);
-                        GGTwitch.JoinChannel(userName);
+                            return;
+                        }
 
-                        GGSendMessage(streamerUserName, $"I have reconnected to {targetUserName}'s channel @{userDisplayName}, if they still have an issue, please contact DJKoston#0001 on Discord.");
+                        else
+                        {
+                            GGSendMessage(streamerUserName, $"This channel already has GG-Bot. They are not on our whitelist so please contact DJKoston#0001 on Discord to be whitelisted then use !rejoin @{targetUserName}");
 
-                        return;
+                            return;
+                        }
                     }
                 }
             }
