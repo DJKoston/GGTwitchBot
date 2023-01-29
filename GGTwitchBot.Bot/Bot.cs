@@ -253,56 +253,53 @@ namespace GGTwitchBot.Bot
                     GGSendMessage(streamerUserName, "You do not have permission to use this command here.");
                 }
             }
-            if (command == "join")
+            if (command == "join" && streamerUserName == "generationgamersttv")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
-                if (streamerUserName == "generationgamersttv")
+                if (argumentsCount == 0)
                 {
-                    if (argumentsCount == 0)
+                    var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == userName);
+
+                    if (isStream == null)
                     {
-                        var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == userName);
+                        _streamService.NewStreamAsync(userName);
+                        GGTwitch.JoinChannel(userName);
 
-                        if (isStream == null)
-                        {
-                            _streamService.NewStreamAsync(userName);
-                            GGTwitch.JoinChannel(userName);
+                        GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to your channel! If you want me to leave, just type !ggleave in your channel.");
+                        GGSendMessage(userName, $"Hi there @{userDisplayName}, Just wanted to let you know, i'm here and waiting <3");
 
-                            GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to your channel! If you want me to leave, just type !ggleave in your channel.");
-                            GGSendMessage(userName, $"Hi there @{userDisplayName}, Just wanted to let you know, i'm here and waiting <3");
-
-                            return;
-                        }
-
-                        else
-                        {
-                            GGSendMessage(streamerUserName, "You already have GG-Bot in your channel. If you are experiencing issues, use !rejoin");
-
-                            return;
-                        }
+                        return;
                     }
 
-                    else if (argumentsCount == 1)
+                    else
                     {
-                        var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == targetUserName.ToLower());
+                        GGSendMessage(streamerUserName, "You already have GG-Bot in your channel. If you are experiencing issues, use !rejoin");
 
-                        if (isStream == null)
-                        {
-                            _streamService.NewStreamAsync(targetUserName.ToLower());
-                            GGTwitch.JoinChannel(targetUserName);
+                        return;
+                    }
+                }
 
-                            GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to {targetUserName}! If you want me to leave, just type !ggleave in their chat.");
-                            GGSendMessage(targetUserName, $"Hi there @{targetUserName}, {userDisplayName} just added me to your channel, If you don't want me here, you or a mod can do !ggleave and i'll go away. <3");
+                else if (argumentsCount == 1)
+                {
+                    var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == targetUserName.ToLower());
 
-                            return;
-                        }
+                    if (isStream == null)
+                    {
+                        _streamService.NewStreamAsync(targetUserName.ToLower());
+                        GGTwitch.JoinChannel(targetUserName);
 
-                        else
-                        {
-                            GGSendMessage(streamerUserName, "GG-Bot is already in this channel. If they are experiencing issues, use !rejoin @username");
+                        GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to {targetUserName}! If you want me to leave, just type !ggleave in their chat.");
+                        GGSendMessage(targetUserName, $"Hi there @{targetUserName}, {userDisplayName} just added me to your channel, If you don't want me here, you or a mod can do !ggleave and i'll go away. <3");
 
-                            return;
-                        }
+                        return;
+                    }
+
+                    else
+                    {
+                        GGSendMessage(streamerUserName, "GG-Bot is already in this channel. If they are experiencing issues, use !rejoin @username");
+
+                        return;
                     }
                 }
             }
