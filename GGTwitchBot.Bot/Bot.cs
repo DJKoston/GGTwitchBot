@@ -323,6 +323,58 @@ namespace GGTwitchBot.Bot
                 
                 return;
             }
+            if (command == "rejoin" && streamerUserName == "generationgamersttv")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                if (argumentsCount == 0)
+                {
+                    var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == userName);
+
+                    if (isStream == null)
+                    {
+                        GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, this bot is not currently in your channel. If you are whitelisted, please do !join for me to join your channel.");
+
+                        return;
+                    }
+
+                    else
+                    {
+                        GGSendMessage(streamerUserName, $"I am just about to reconnect to your channel @{userDisplayName}, give me a moment.");
+
+                        GGTwitch.LeaveChannel(userName);
+                        GGTwitch.JoinChannel(userName);
+
+                        GGSendMessage(streamerUserName, $"I have reconnected to your channel @{userDisplayName}, if you still have an issue, please contact DJKoston#0001 on Discord.");
+
+                        return;
+                    }
+                }
+
+                else if (argumentsCount == 1)
+                {
+                    var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == targetUserName.ToLower());
+
+                    if (isStream == null)
+                    {
+                        GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, this bot is not currently in {targetUserName}. If they are whitelisted, please do !join @{targetUserName} for me to join their channel.");
+
+                        return;
+                    }
+
+                    else
+                    {
+                        GGSendMessage(streamerUserName, $"I am just about to reconnect to {targetUserName}'s channel @{userDisplayName}, give me a moment.");
+
+                        GGTwitch.LeaveChannel(userName);
+                        GGTwitch.JoinChannel(userName);
+
+                        GGSendMessage(streamerUserName, $"I have reconnected to {targetUserName}'s channel @{userDisplayName}, if they still have an issue, please contact DJKoston#0001 on Discord.");
+
+                        return;
+                    }
+                }
+            }
             if (command == "spawned" && betaTesters.Contains(streamerUserName))
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
