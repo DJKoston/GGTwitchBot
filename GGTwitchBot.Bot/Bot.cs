@@ -614,10 +614,10 @@ namespace GGTwitchBot.Bot
             {
                 var pokemon = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0];
 
-                var messageParse1 = e.ChatMessage.Message.Replace($"{pokemon} ", "").Replace(" (SHINY✨)", "");
-                var messageParse2 = messageParse1.Replace("has been caught by: ", "");
+                var messageParse1 = e.ChatMessage.Message.Replace($"{pokemon} ", "").Replace(" (SHINY✨)", "").Replace(" (🪨)", "");
+                var messageParse3 = messageParse1.Replace("has been caught by: ", "");
 
-                var catchList = messageParse2.Split(", ").ToList();
+                var catchList = messageParse3.Split(", ").ToList();
                 var throwersList = _pokecatchService.GetPokecatchersListAsync(e.ChatMessage.Channel);
                 var catchersCount = await _pokecatchService.GetPokecatchersCountAsync(e.ChatMessage.Channel);
 
