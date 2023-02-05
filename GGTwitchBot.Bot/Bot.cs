@@ -11,7 +11,6 @@ namespace GGTwitchBot.Bot
         PokeApiClient pokeClient;
         TwitchAPI TwitchAPI;
         TwitchClient GGTwitch;
-        //TwitchClient DJTwitch;
         public ConsoleColor twitchColor;
         public ConsoleColor fail;
 
@@ -47,7 +46,6 @@ namespace GGTwitchBot.Bot
 
             Log("Creating Bot Credentials...");
             ConnectionCredentials creds1 = new ConnectionCredentials(configuration["ggusername"], configuration["ggaccesstoken"]);
-            //ConnectionCredentials creds2 = new ConnectionCredentials(configuration["djusername"], configuration["djaccesstoken"]);
             Log("Created Bot Credentials...");
 
             Log("Creating Client Options...");
@@ -60,18 +58,15 @@ namespace GGTwitchBot.Bot
 
             Log("Creating WebSocket Client...");
             WebSocketClient webSocketClient1 = new(clientOptions);
-            //WebSocketClient webSocketClient2 = new(clientOptions);
             Log("Created WebSocket Client...");
 
             Log("Creating Twitch Client...", twitchColor);
             GGTwitch = new TwitchClient(webSocketClient1);
-            ////DJTwitch = new TwitchClient(webSocketClient2);
             Log("Created Twitch Client...", twitchColor);
 
             Log("Initialising Bot...");
             GGTwitch.Initialize(creds1, "generationgamersttv");
             GGTwitch.AddChatCommandIdentifier('!');
-            ////DJTwitch.Initialize(creds2, "generationgamersttv");
             Log("Bot Initialised...");
 
             Log("Subscribing to GG Client Events...");
@@ -82,15 +77,8 @@ namespace GGTwitchBot.Bot
             GGTwitch.OnLeftChannel += OnLeftChannel;
             Log("Subscribed to GG Client Events...");
 
-            /*Log("Subscribing to DJKoston Client Events...");
-            //DJTwitch.OnConnected += OnDJClientConnected;
-            //DJTwitch.OnJoinedChannel += OnJoinedChannel;
-            //DJTwitch.OnLeftChannel += OnLeftChannel;
-            Log("Subscribed to DJKoston Client Events...");*/
-
             Log("Connecting to Twitch", twitchColor);
             GGTwitch.Connect();
-            //DJTwitch.Connect();
             Log("Connected to Twitch!", twitchColor);
             Log("GG-Bot is Ready.", ConsoleColor.Green);
         }
@@ -743,18 +731,6 @@ namespace GGTwitchBot.Bot
             }
         }
 
-        private void OnDJClientConnected(object sender, OnConnectedArgs e)
-        {
-            var streamsToConnect = _streamService.GetStreamsToConnect();
-
-            if (streamsToConnect == null) { Log("No Streams to connect to", fail); return; }
-
-            foreach (Streams stream in streamsToConnect)
-            {
-                //DJTwitch.JoinChannel(stream.StreamerUsername);
-            }
-        }
-
         public void OnJoinedChannel(object sender, OnJoinedChannelArgs e)
         {
             Log($"{e.BotUsername} Connected to {e.Channel}");
@@ -763,11 +739,6 @@ namespace GGTwitchBot.Bot
         public void GGSendMessage(string channel, string message)
         {
             GGTwitch.SendMessage(channel, message);
-        }
-
-        public void DJSendMessage(string channel, string message)
-        {
-            //DJTwitch.SendMessage(channel, message);
         }
 
         public static void ConsoleLog(string logLine, ConsoleColor color = ConsoleColor.White)
