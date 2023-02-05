@@ -183,6 +183,32 @@ namespace GGTwitchBot.Bot
                     return;
                 }
             }
+            if (command == "betaannounce")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                if (userName == "djkoston" && streamerUserName == "generationgamersttv")
+                {
+                    foreach (var channel in betaTesters)
+                    {
+                        GGSendMessage(channel, argumentsAsString);
+                    }
+
+                    return;
+                }
+                else if (userName != "djkoston" && streamerUserName == "generationgamersttv")
+                {
+                    GGSendMessage(streamerUserName, "You can't send announcements using this command, only the bot creator can use this command.");
+
+                    return;
+                }
+                else if (streamerUserName != "generationgamersttv")
+                {
+                    GGSendMessage(streamerUserName, "You cannot use this command in this channel.");
+
+                    return;
+                }
+            }
             if (command == "dadjoke")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
