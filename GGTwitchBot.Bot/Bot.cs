@@ -584,14 +584,9 @@ namespace GGTwitchBot.Bot
                             }
                         }
 
-                        if (pcgSpawn.Tier == "A")
+                        if (pcgSpawn.Tier == "A" || pcgSpawn.Tier == "S")
                         {
-                            GGSendMessage(e.ChatMessage.Channel, "djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob A Tier Hype!!! djkostRGBBlob djkostRGBBlob djkostRGBBlob");
-                        }
-
-                        if (pcgSpawn.Tier == "S")
-                        {
-                            GGSendMessage(e.ChatMessage.Channel, "djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob S Tier Hype!!! djkostRGBBlob djkostRGBBlob djkostRGBBlob");
+                            GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob {pcgSpawn.Tier} Tier Hype!!! djkostRGBBlob djkostRGBBlob djkostRGBBlob");
                         }
                     }
 
