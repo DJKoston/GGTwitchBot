@@ -572,12 +572,12 @@ namespace GGTwitchBot.Bot
 
                         if (pcgSpawn.Tier == "A")
                         {
-                            GGSendMessage(e.ChatMessage.Channel, "djkostRGBBlob djkostRGBBlob A Tier Hype!!! djkostRGBBlob djkostRGBBlob");
+                            GGSendMessage(e.ChatMessage.Channel, "djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob A Tier Hype!!! djkostRGBBlob djkostRGBBlob djkostRGBBlob");
                         }
 
                         if (pcgSpawn.Tier == "S")
                         {
-                            GGSendMessage(e.ChatMessage.Channel, "djkostRGBBlob djkostRGBBlob djkostRGBBlob S Tier Hype!!! djkostRGBBlob djkostRGBBlob djkostRGBBlob");
+                            GGSendMessage(e.ChatMessage.Channel, "djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob S Tier Hype!!! djkostRGBBlob djkostRGBBlob djkostRGBBlob");
                         }
                     }
 
