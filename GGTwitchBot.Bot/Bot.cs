@@ -531,7 +531,6 @@ namespace GGTwitchBot.Bot
                             {
                                 var weeklyCheck = weekly.Split(" ", StringSplitOptions.None).ToList<string>();
                                 var category = weeklyCheck[0];
-                                var action = weeklyCheck[1];
 
                                 if (category.ToLower() == "types" && pcgSpawn.Type.Contains(weeklyCheck[2]))
                                 {
@@ -569,6 +568,16 @@ namespace GGTwitchBot.Bot
                                     }
                                 }
                             }
+                        }
+
+                        if (pcgSpawn.Tier == "A")
+                        {
+                            GGSendMessage(e.ChatMessage.Channel, "djkostRGBBlob djkostRGBBlob A Tier Hype!!! djkostRGBBlob djkostRGBBlob");
+                        }
+
+                        if (pcgSpawn.Tier == "S")
+                        {
+                            GGSendMessage(e.ChatMessage.Channel, "djkostRGBBlob djkostRGBBlob djkostRGBBlob S Tier Hype!!! djkostRGBBlob djkostRGBBlob djkostRGBBlob");
                         }
                     }
 
