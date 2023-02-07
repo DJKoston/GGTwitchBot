@@ -13,7 +13,9 @@ namespace GGTwitchBot.Bot
         TwitchClient GGTwitch;
         public ConsoleColor twitchColor;
         public ConsoleColor fail;
-        public string pokeName = "Buizel";
+
+        public string pokeName = null;
+        public bool pokeNameSet = false;
 
         //public string pokeBotUsername = "pokemoncommunitygame";
         public string pokeBotUsername = "djkoston";
@@ -477,7 +479,7 @@ namespace GGTwitchBot.Bot
                     }
                 }
             }
-            if (command == "spawned" && betaTesters.Contains(streamerUserName))
+            if ((command == "spawned" || command == "!lastspawn") && betaTesters.Contains(streamerUserName))
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
@@ -512,13 +514,17 @@ namespace GGTwitchBot.Bot
 
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.ToLower().Contains("catch it using !pokecatch (winners revealed in 90s)"))
             {
+                if (pokeNameSet == false)
+                {
+                    pokeName = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3];
+                    pokeNameSet = true;
+                }
+
                 await _pokecatchService.RemoveAllCatchesAsync(e.ChatMessage.Channel);
                 Log($"Pokecatch started in {e.ChatMessage.Channel}");
 
                 if (betaTesters.Contains(e.ChatMessage.Channel))
                 {
-                    pokeName = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3];
-
                     HttpClient client = new();
 
                     using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
