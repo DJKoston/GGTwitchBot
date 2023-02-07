@@ -14,11 +14,12 @@ namespace GGTwitchBot.Bot
         public ConsoleColor twitchColor;
         public ConsoleColor fail;
 
+        public string pokeDex = null;
         public string pokeName = null;
         public bool pokeNameSet = false;
 
-        public string pokeBotUsername = "pokemoncommunitygame";
-        //public string pokeBotUsername = "djkoston";
+        //public string pokeBotUsername = "pokemoncommunitygame";
+        public string pokeBotUsername = "djkoston";
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -530,7 +531,18 @@ namespace GGTwitchBot.Bot
             {
                 if (pokeNameSet == false)
                 {
-                    pokeName = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3];
+                    if (e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3] == "Mr." ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3] == "Type:" ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3] == "Tapu" ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3] == "Mime")
+                    {
+                        pokeName = $"{e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3]} {e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[4]}";
+                    }
+
+                    else
+                    {
+                        pokeName = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3];
+                    }
                     pokeNameSet = true;
                 }
 
@@ -655,7 +667,20 @@ namespace GGTwitchBot.Bot
 
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.ToLower().Contains("has been caught by:"))
             {
-                var pokemon = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0];
+                string pokemon = null;
+
+                if (e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Mr." ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Type:" ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Tapu" ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Mime")
+                {
+                    pokemon = $"{e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0]} {e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[1]}";
+                }
+
+                else
+                {
+                    pokemon = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0];
+                }
 
                 var messageParse1 = e.ChatMessage.Message.Replace($"{pokemon} ", "").Replace(" (SHINY✨)", "").Replace(" (🪨)", "");
                 var messageParse3 = messageParse1.Replace("has been caught by: ", "");
@@ -695,7 +720,21 @@ namespace GGTwitchBot.Bot
 
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.Contains("escaped. No one caught it."))
             {
-                var pokemon = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0];
+                string pokemon = null;
+
+                if (e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Mr." ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Type:" ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Tapu" ||
+                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Mime")
+                {
+                    pokemon = $"{e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0]} {e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[1]}";
+                }
+
+                else
+                {
+                    pokemon = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0];
+                }
+
                 var catchersCount = await _pokecatchService.GetPokecatchersCountAsync(e.ChatMessage.Channel);
 
                 if(catchersCount == 0)
@@ -773,10 +812,10 @@ namespace GGTwitchBot.Bot
 
             if (streamsToConnect == null) { Log("No Streams to connect to", fail); return; }
 
-            foreach (Streams stream in streamsToConnect)
+            /*foreach (Streams stream in streamsToConnect)
             {
                 GGTwitch.JoinChannel(stream.StreamerUsername);
-            }
+            }*/
         }
 
         public void OnJoinedChannel(object sender, OnJoinedChannelArgs e)
