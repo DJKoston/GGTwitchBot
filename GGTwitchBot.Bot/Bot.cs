@@ -17,8 +17,8 @@ namespace GGTwitchBot.Bot
         public string pokeName = null;
         public bool pokeNameSet = false;
 
-        //public string pokeBotUsername = "pokemoncommunitygame";
-        public string pokeBotUsername = "djkoston";
+        public string pokeBotUsername = "pokemoncommunitygame";
+        //public string pokeBotUsername = "djkoston";
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -479,7 +479,7 @@ namespace GGTwitchBot.Bot
                     }
                 }
             }
-            if ((command == "spawned" || command == "!lastspawn") && betaTesters.Contains(streamerUserName))
+            if ((command == "spawned" || command == "lastspawn") && betaTesters.Contains(streamerUserName))
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
@@ -496,6 +496,20 @@ namespace GGTwitchBot.Bot
                     var dexNumber = pcgSpawnDex.ToString("000");
 
                     var pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                    if (pcgSpawn == null)
+                    {
+                        if (pokeName == null)
+                        {
+                            GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+
+                            return;
+                        }
+                        else
+                        {
+                            pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                        }
+                    }
 
                     GGSendMessage(streamerUserName, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
                 }
