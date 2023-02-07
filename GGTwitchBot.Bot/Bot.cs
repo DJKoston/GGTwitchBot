@@ -674,6 +674,7 @@ namespace GGTwitchBot.Bot
                 }
 
                 await _pokecatchService.RemoveAllCatchesAsync(e.ChatMessage.Channel);
+                pokeNameSet = false;
 
                 return;
             }
@@ -705,6 +706,7 @@ namespace GGTwitchBot.Bot
                 }
 
                 await _pokecatchService.RemoveAllCatchesAsync(e.ChatMessage.Channel);
+                pokeNameSet = false;
 
                 return;
             }
