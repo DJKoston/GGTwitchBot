@@ -13,9 +13,10 @@ namespace GGTwitchBot.Bot
         TwitchClient GGTwitch;
         public ConsoleColor twitchColor;
         public ConsoleColor fail;
+        public string pokeName = "Buizel";
 
-        public string pokeBotUsername = "pokemoncommunitygame";
-        //public string pokeBotUsername = "djkoston";
+        //public string pokeBotUsername = "pokemoncommunitygame";
+        public string pokeBotUsername = "djkoston";
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -166,6 +167,7 @@ namespace GGTwitchBot.Bot
                     foreach (var channel in channels)
                     {
                         GGSendMessage(channel.Channel, argumentsAsString);
+                        Log($"Announcement sent to: {channel.Channel}");
                     }
 
                     return;
@@ -192,6 +194,7 @@ namespace GGTwitchBot.Bot
                     foreach (var channel in betaTesters)
                     {
                         GGSendMessage(channel, argumentsAsString);
+                        Log($"Announcement sent to: {channel}");
                     }
 
                     return;
@@ -514,6 +517,8 @@ namespace GGTwitchBot.Bot
 
                 if (betaTesters.Contains(e.ChatMessage.Channel))
                 {
+                    pokeName = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[3];
+
                     HttpClient client = new();
 
                     using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
@@ -530,7 +535,7 @@ namespace GGTwitchBot.Bot
 
                         if (pcgSpawn == null)
                         {
-                            return;
+                            pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
                         }
 
                         var weeklyFile = File.ReadAllLines("/home/container/weekly.txt");
@@ -586,7 +591,7 @@ namespace GGTwitchBot.Bot
 
                         if (pcgSpawn.Tier == "A" || pcgSpawn.Tier == "S")
                         {
-                            GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob djkostRGBBlob {pcgSpawn.Tier} Tier Hype!!! djkostRGBBlob djkostRGBBlob djkostRGBBlob");
+                            GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob djkostRGBBlob {pcgSpawn.Tier} Tier Hype!!! djkostRGBBlob djkostRGBBlob");
                         }
                     }
 
