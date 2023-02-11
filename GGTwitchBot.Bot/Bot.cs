@@ -20,8 +20,8 @@ namespace GGTwitchBot.Bot
         public string pokeName = null;
         public bool pokeNameSet = false;
 
-        //public string pokeBotUsername = "pokemoncommunitygame";
-        public string pokeBotUsername = "djkoston";
+        public string pokeBotUsername = "pokemoncommunitygame";
+        //public string pokeBotUsername = "djkoston";
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -763,7 +763,7 @@ namespace GGTwitchBot.Bot
 
             foreach (Streams stream in streamsToConnect)
             {
-                //GGTwitch.JoinChannel(stream.StreamerUsername);
+                GGTwitch.JoinChannel(stream.StreamerUsername);
             }
         }
 
