@@ -20,8 +20,8 @@ namespace GGTwitchBot.Bot
         public string pokeName = null;
         public bool pokeNameSet = false;
 
-        public string pokeBotUsername = "pokemoncommunitygame";
-        //public string pokeBotUsername = "djkoston";
+        //public string pokeBotUsername = "pokemoncommunitygame";
+        public string pokeBotUsername = "djkoston";
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -522,32 +522,32 @@ namespace GGTwitchBot.Bot
                 await _pokecatchService.RemoveAllCatchesAsync(e.ChatMessage.Channel);
                 Log($"Pokecatch started in {e.ChatMessage.Channel}");
 
-                if (betaTesters.Contains(e.ChatMessage.Channel))
+                HttpClient client = new();
+
+                if (newPCGSpawn == false)
                 {
-                    HttpClient client = new();
-
-                    if (newPCGSpawn == false)
+                    using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
                     {
-                        using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                        StreamReader reader = new(dataStream);
+
+                        string responseFromServer = reader.ReadToEnd();
+
+                        var pcgAPI = JObject.Parse(responseFromServer);
+                        var dexNumber = Convert.ToInt32(pcgAPI["pokedex_id"]).ToString("000");
+
+                        pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                        if (pcgSpawn == null)
                         {
-                            StreamReader reader = new(dataStream);
-
-                            string responseFromServer = reader.ReadToEnd();
-
-                            var pcgAPI = JObject.Parse(responseFromServer);
-                            var dexNumber = Convert.ToInt32(pcgAPI["pokedex_id"]).ToString("000");
-
-                            pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
-
-                            if (pcgSpawn == null)
-                            {
-                                pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
-                            }
+                            pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
                         }
-
-                        newPCGSpawn = true;
                     }
 
+                    newPCGSpawn = true;
+                }
+
+                if (betaTesters.Contains(e.ChatMessage.Channel))
+                {
                     GGSendMessage(e.ChatMessage.Channel, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
 
                     var weeklyFile = File.ReadAllLines("/home/container/weekly.txt");
@@ -763,7 +763,7 @@ namespace GGTwitchBot.Bot
 
             foreach (Streams stream in streamsToConnect)
             {
-                GGTwitch.JoinChannel(stream.StreamerUsername);
+                //GGTwitch.JoinChannel(stream.StreamerUsername);
             }
         }
 
