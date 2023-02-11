@@ -14,12 +14,14 @@ namespace GGTwitchBot.Bot
         public ConsoleColor twitchColor;
         public ConsoleColor fail;
 
-        public string pokeDex = null;
+        public PCG pcgSpawn = null;
+        public bool newPCGSpawn = false;
+
         public string pokeName = null;
         public bool pokeNameSet = false;
 
-        public string pokeBotUsername = "pokemoncommunitygame";
-        //public string pokeBotUsername = "djkoston";
+        //public string pokeBotUsername = "pokemoncommunitygame";
+        public string pokeBotUsername = "djkoston";
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -117,9 +119,9 @@ namespace GGTwitchBot.Bot
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
-                var commandList = "GG-Bot Commands: djkostNaughtySpray, !affirmation, !dadjoke, !flipacoin, !ping";
+                var commandList = "GG-Bot Commands: !affirmation, !dadjoke, !flipacoin, !ping";
                 var modCommandList = "GG-Bot Commands: !affirmation, !dadjoke, !flipacoin, !ggleave, !ping";
-                var ownerCommandList = "GG-Bot Commands: !affirmation, !announce, !dadjoke, !flipacoin, !ggleave, !ping";
+                var ownerCommandList = "GG-Bot Commands: !affirmation, !announce, !betaannounce, !dadjoke, !flipacoin, !ggleave, !ping";
 
                 if (userName == "djkoston")
                 {
@@ -159,61 +161,32 @@ namespace GGTwitchBot.Bot
 
                 return;
             }
-            if (command == "announce")
+            if (command == "announce" && userName == "djkoston" && streamerUserName == "generationgamersttv")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
-                if (userName == "djkoston" && streamerUserName == "generationgamersttv")
+                var channels = GGTwitch.JoinedChannels;
+
+                foreach (var channel in channels)
                 {
-                    var channels = GGTwitch.JoinedChannels;
-
-                    foreach (var channel in channels)
-                    {
-                        GGSendMessage(channel.Channel, argumentsAsString);
-                        Log($"Announcement sent to: {channel.Channel}");
-                    }
-
-                    return;
+                    GGSendMessage(channel.Channel, argumentsAsString);
+                    Log($"Announcement sent to: {channel.Channel}");
                 }
-                else if (userName != "djkoston" && streamerUserName == "generationgamersttv")
-                {
-                    GGSendMessage(streamerUserName, "You can't send announcements using this command, only the bot creator can use this command.");
 
-                    return;
-                }
-                else if (streamerUserName != "generationgamersttv")
-                {
-                    GGSendMessage(streamerUserName, "You cannot use this command in this channel.");
-
-                    return;
-                }
+                return;
             }
-            if (command == "betaannounce")
+            if (command == "betaannounce" && userName == "djkoston" && streamerUserName == "generationgamersttv")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
-                if (userName == "djkoston" && streamerUserName == "generationgamersttv")
+                foreach (var channel in betaTesters)
                 {
-                    foreach (var channel in betaTesters)
-                    {
-                        GGSendMessage(channel, argumentsAsString);
-                        Log($"Announcement sent to: {channel}");
-                    }
-
-                    return;
+                    GGSendMessage(channel, argumentsAsString);
+                    Log($"Announcement sent to: {channel}");
                 }
-                else if (userName != "djkoston" && streamerUserName == "generationgamersttv")
-                {
-                    GGSendMessage(streamerUserName, "You can't send announcements using this command, only the bot creator can use this command.");
 
-                    return;
-                }
-                else if (streamerUserName != "generationgamersttv")
-                {
-                    GGSendMessage(streamerUserName, "You cannot use this command in this channel.");
+                return;
 
-                    return;
-                }
             }
             if (command == "dadjoke")
             {
@@ -260,6 +233,8 @@ namespace GGTwitchBot.Bot
                 if (streamerUserName == "generationgamersttv")
                 {
                     GGSendMessage(streamerUserName, "To get the bot to leave your channel, run this command in your own chat.");
+
+                    return;
                 }
 
                 else if (isMod || isBroadcaster || userName == "djkoston")
@@ -270,11 +245,6 @@ namespace GGTwitchBot.Bot
                     GGTwitch.LeaveChannel(streamerUserName);
 
                     return;
-                }
-
-                else
-                {
-                    GGSendMessage(streamerUserName, "You do not have permission to use this command here.");
                 }
             }
             if (command == "join" && streamerUserName == "generationgamersttv")
@@ -486,34 +456,37 @@ namespace GGTwitchBot.Bot
 
                 HttpClient client = new();
 
-                using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                if (pcgSpawn == null)
                 {
-                    StreamReader reader = new(dataStream);
-
-                    string responseFromServer = reader.ReadToEnd();
-
-                    var pcgAPI = JObject.Parse(responseFromServer);
-                    var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
-                    var dexNumber = pcgSpawnDex.ToString("000");
-
-                    var pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
-
-                    if (pcgSpawn == null)
+                    using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
                     {
-                        if (pokeName == null)
-                        {
-                            GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+                        StreamReader reader = new(dataStream);
 
-                            return;
-                        }
-                        else
+                        string responseFromServer = reader.ReadToEnd();
+
+                        var pcgAPI = JObject.Parse(responseFromServer);
+                        var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
+                        var dexNumber = pcgSpawnDex.ToString("000");
+
+                        pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                        if (pcgSpawn == null)
                         {
-                            pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                            if (pokeName == null)
+                            {
+                                GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+
+                                return;
+                            }
+                            else
+                            {
+                                pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                            }
                         }
                     }
-
-                    GGSendMessage(streamerUserName, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
                 }
+
+                GGSendMessage(streamerUserName, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
 
                 client.Dispose();
 
@@ -553,78 +526,82 @@ namespace GGTwitchBot.Bot
                 {
                     HttpClient client = new();
 
-                    using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                    if (newPCGSpawn == false)
                     {
-                        StreamReader reader = new(dataStream);
-
-                        string responseFromServer = reader.ReadToEnd();
-
-                        var pcgAPI = JObject.Parse(responseFromServer);
-                        var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
-                        var dexNumber = pcgSpawnDex.ToString("000");
-
-                        var pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
-
-                        if (pcgSpawn == null)
+                        using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
                         {
-                            pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
-                        }
+                            StreamReader reader = new(dataStream);
 
-                        var weeklyFile = File.ReadAllLines("/home/container/weekly.txt");
-                        var weeklys = new List<string>(weeklyFile);
-                        weeklys.RemoveRange(0, 13);
+                            string responseFromServer = reader.ReadToEnd();
 
-                        GGSendMessage(e.ChatMessage.Channel, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
+                            var pcgAPI = JObject.Parse(responseFromServer);
+                            var dexNumber = Convert.ToInt32(pcgAPI["pokedex_id"]).ToString("000");
 
-                        if (weeklys.Count != 0)
-                        {
-                            foreach(var weekly in weeklys)
+                            pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                            if (pcgSpawn == null)
                             {
-                                var weeklyCheck = weekly.Split(" ", StringSplitOptions.None).ToList<string>();
-                                var category = weeklyCheck[0];
-
-                                if (category.ToLower() == "types" && pcgSpawn.Type.Contains(weeklyCheck[2]))
-                                {
-                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} {weeklyCheck[2]} Types! djkostRGBBlob");
-                                }
-
-                                if (category.ToLower() == "bst")
-                                {
-                                    var bstNumber = Convert.ToInt32(weeklyCheck[3]);
-
-                                    if (weeklyCheck[2] == ">" && pcgSpawn.BST >= bstNumber)
-                                    {
-                                        GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon with {bstNumber} BST or Higher! djkostRGBBlob");
-                                    }
-
-                                    if (weeklyCheck[2] == "<" && pcgSpawn.BST <= bstNumber)
-                                    {
-                                        GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon with {bstNumber} BST or Lower! djkostRGBBlob");
-                                    }
-                                }
-
-                                if (category.ToLower() == "weight")
-                                {
-                                    var weightNumber = Convert.ToDouble(weeklyCheck[3]);
-                                    var pcgWeight = Convert.ToDouble(pcgSpawn.Weight.Replace("Lbs", ""));
-
-                                    if (weeklyCheck[2] == ">" && pcgWeight > weightNumber)
-                                    {
-                                        GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon Heavier than {weightNumber}lbs! djkostRGBBlob");
-                                    }
-
-                                    if (weeklyCheck[2] == "<" && pcgWeight < weightNumber)
-                                    {
-                                        GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon Lighter than {weightNumber}lbs! djkostRGBBlob");
-                                    }
-                                }
+                                pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
                             }
                         }
 
-                        if (pcgSpawn.Tier == "A" || pcgSpawn.Tier == "S")
+                        newPCGSpawn = true;
+                    }
+
+                    GGSendMessage(e.ChatMessage.Channel, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
+
+                    var weeklyFile = File.ReadAllLines("/home/container/weekly.txt");
+                    var weeklys = new List<string>(weeklyFile);
+                    weeklys.RemoveRange(0, 13);
+
+                    if (weeklys.Count != 0)
+                    {
+                        foreach (var weekly in weeklys)
                         {
-                            GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob djkostRGBBlob {pcgSpawn.Tier} Tier Hype!!! djkostRGBBlob djkostRGBBlob");
+                            var weeklyCheck = weekly.Split(" ", StringSplitOptions.None).ToList<string>();
+                            var category = weeklyCheck[0];
+
+                            if (category.ToLower() == "types" && pcgSpawn.Type.Contains(weeklyCheck[2]))
+                            {
+                                GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} {weeklyCheck[2]} Types! djkostRGBBlob");
+                            }
+
+                            if (category.ToLower() == "bst")
+                            {
+                                var bstNumber = Convert.ToInt32(weeklyCheck[3]);
+
+                                if (weeklyCheck[2] == ">" && pcgSpawn.BST >= bstNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon with {bstNumber} BST or Higher! djkostRGBBlob");
+                                }
+
+                                if (weeklyCheck[2] == "<" && pcgSpawn.BST <= bstNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon with {bstNumber} BST or Lower! djkostRGBBlob");
+                                }
+                            }
+
+                            if (category.ToLower() == "weight")
+                            {
+                                var weightNumber = Convert.ToDouble(weeklyCheck[3]);
+                                var pcgWeight = Convert.ToDouble(pcgSpawn.Weight.Replace("Lbs", ""));
+
+                                if (weeklyCheck[2] == ">" && pcgWeight > weightNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon Heavier than {weightNumber}lbs! djkostRGBBlob");
+                                }
+
+                                if (weeklyCheck[2] == "<" && pcgWeight < weightNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon Lighter than {weightNumber}lbs! djkostRGBBlob");
+                                }
+                            }
                         }
+                    }
+
+                    if (pcgSpawn.Tier == "A" || pcgSpawn.Tier == "S")
+                    {
+                        GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob djkostRGBBlob {pcgSpawn.Tier} Tier Hype!!! djkostRGBBlob djkostRGBBlob");
                     }
 
                     client.Dispose();
@@ -667,22 +644,7 @@ namespace GGTwitchBot.Bot
 
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.ToLower().Contains("has been caught by:"))
             {
-                string pokemon = null;
-
-                if (e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Mr." ||
-                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Type:" ||
-                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Tapu" ||
-                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Mime")
-                {
-                    pokemon = $"{e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0]} {e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[1]}";
-                }
-
-                else
-                {
-                    pokemon = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0];
-                }
-
-                var messageParse1 = e.ChatMessage.Message.Replace($"{pokemon} ", "").Replace(" (SHINY✨)", "").Replace(" (🪨)", "");
+                var messageParse1 = e.ChatMessage.Message.Replace($"{pcgSpawn.Name} ", "").Replace(" (SHINY✨)", "").Replace(" (🪨)", "");
                 var messageParse3 = messageParse1.Replace("has been caught by: ", "");
 
                 var catchList = messageParse3.Split(", ").ToList();
@@ -691,14 +653,14 @@ namespace GGTwitchBot.Bot
 
                 var misserList = throwersList.Except(catchList).ToList();
 
-                GGSendMessage(e.ChatMessage.Channel, $"{catchList.Count}/{catchersCount} people caught the {pokemon} this time around!");
-                Log($"Pokecatch ended in {e.ChatMessage.Channel}, {catchList.Count}/{catchersCount} people caught the {pokemon}!");
+                GGSendMessage(e.ChatMessage.Channel, $"{catchList.Count}/{catchersCount} people caught the {pcgSpawn.Name} this time around!");
+                Log($"Pokecatch ended in {e.ChatMessage.Channel}, {catchList.Count}/{catchersCount} people caught the {pcgSpawn.Name}!");
 
                 if (catchList.Count < catchersCount)
                 {
                     var missers = String.Join(", ", misserList);
 
-                    GGSendMessage(e.ChatMessage.Channel, $"Sorry to the following throwers who didn't catch the {pokemon}: {missers}");
+                    GGSendMessage(e.ChatMessage.Channel, $"Sorry to the following throwers who didn't catch the {pcgSpawn.Name}: {missers}");
                 }
 
                 if (catchList.Count == catchersCount && catchersCount > 2)
@@ -709,44 +671,30 @@ namespace GGTwitchBot.Bot
                     GGSendMessage(e.ChatMessage.Channel, "FULL CATCH LIST HYPE");
                     await Task.Delay(500);
                     GGSendMessage(e.ChatMessage.Channel, "FULL CATCH LIST HYPE");
-                    Log($"Pokecatch ended in {e.ChatMessage.Channel}, {catchList.Count}/{catchersCount} people caught the {pokemon}!");
+                    Log($"Pokecatch ended in {e.ChatMessage.Channel}, {catchList.Count}/{catchersCount} people caught the {pcgSpawn.Name}!");
                 }
 
                 await _pokecatchService.RemoveAllCatchesAsync(e.ChatMessage.Channel);
                 pokeNameSet = false;
+                newPCGSpawn = false;
 
                 return;
             }
 
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.Contains("escaped. No one caught it."))
             {
-                string pokemon = null;
-
-                if (e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Mr." ||
-                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Type:" ||
-                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Tapu" ||
-                        e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0] == "Mime")
-                {
-                    pokemon = $"{e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0]} {e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[1]}";
-                }
-
-                else
-                {
-                    pokemon = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0];
-                }
-
                 var catchersCount = await _pokecatchService.GetPokecatchersCountAsync(e.ChatMessage.Channel);
 
                 if(catchersCount == 0)
                 {
-                    GGSendMessage(e.ChatMessage.Channel, $"Unfortunately nobody attempted to catch the {pokemon} this time around :(");
-                    Log($"Pokecatch ended in {e.ChatMessage.Channel}, nobody tried to catch the {pokemon}!");
+                    GGSendMessage(e.ChatMessage.Channel, $"Unfortunately nobody attempted to catch the {pcgSpawn.Name} this time around :(");
+                    Log($"Pokecatch ended in {e.ChatMessage.Channel}, nobody tried to catch the {pcgSpawn.Name}!");
                 }
 
                 else
                 {
-                    GGSendMessage(e.ChatMessage.Channel, $"Unfortunately 0/{catchersCount} people caught the {pokemon} this time around :(");
-                    Log($"Pokecatch ended in {e.ChatMessage.Channel}, 0/{catchersCount} people caught the {pokemon}!");
+                    GGSendMessage(e.ChatMessage.Channel, $"Unfortunately 0/{catchersCount} people caught the {pcgSpawn.Name} this time around :(");
+                    Log($"Pokecatch ended in {e.ChatMessage.Channel}, 0/{catchersCount} people caught the {pcgSpawn.Name}!");
                 }
 
                 List<string> catcherListDb = _pokecatchService.GetPokecatchersListAsync(e.ChatMessage.Channel);
@@ -755,11 +703,12 @@ namespace GGTwitchBot.Bot
 
                 if (missers.Count() != 0)
                 {
-                    GGSendMessage(e.ChatMessage.Channel, $"Sorry to everyone who didn't catch the {pokemon}: {missers}");
+                    GGSendMessage(e.ChatMessage.Channel, $"Sorry to everyone who didn't catch the {pcgSpawn.Name}: {missers}");
                 }
 
                 await _pokecatchService.RemoveAllCatchesAsync(e.ChatMessage.Channel);
                 pokeNameSet = false;
+                newPCGSpawn = false;
 
                 return;
             }
@@ -814,7 +763,7 @@ namespace GGTwitchBot.Bot
 
             foreach (Streams stream in streamsToConnect)
             {
-                GGTwitch.JoinChannel(stream.StreamerUsername);
+                //GGTwitch.JoinChannel(stream.StreamerUsername);
             }
         }
 
