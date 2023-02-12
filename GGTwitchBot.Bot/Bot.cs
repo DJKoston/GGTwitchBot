@@ -185,6 +185,20 @@ namespace GGTwitchBot.Bot
 
                 return;
             }
+            if (command == "betaannounce" && userName == "djkoston" && streamerUserName == "generationgamersttv" && environmentName == "Beta")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                var channels = GGTwitch.JoinedChannels;
+
+                foreach (var channel in channels)
+                {
+                    GGSendMessage(channel.Channel, argumentsAsString);
+                    Log($"Announcement sent to: {channel.Channel}");
+                }
+
+                return;
+            }
             if (command == "dadjoke")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
