@@ -430,6 +430,48 @@ namespace GGTwitchBot.Bot
                 
                 return;
             }
+            if ((command == "spawned" || command == "lastspawn") && environmentName == "Beta")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                HttpClient client = new();
+
+                if (pcgSpawn == null)
+                {
+                    using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                    {
+                        StreamReader reader = new(dataStream);
+
+                        string responseFromServer = reader.ReadToEnd();
+
+                        var pcgAPI = JObject.Parse(responseFromServer);
+                        var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
+                        var dexNumber = pcgSpawnDex.ToString("000");
+
+                        pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                        if (pcgSpawn == null)
+                        {
+                            if (pokeName == null)
+                            {
+                                GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+
+                                return;
+                            }
+                            else
+                            {
+                                pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                            }
+                        }
+                    }
+                }
+
+                GGSendMessage(streamerUserName, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
+
+                client.Dispose();
+
+                return;
+            }
         }
 
         private async void OnMessageReceived(object sender, OnMessageReceivedArgs e)
@@ -478,6 +520,69 @@ namespace GGTwitchBot.Bot
                     }
 
                     newPCGSpawn = true;
+                }
+
+                if (environmentName == "Beta")
+                {
+                    GGSendMessage(e.ChatMessage.Channel, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
+
+                    var weeklyFile = File.ReadAllLines("/home/container/weekly.txt");
+                    var weeklys = new List<string>(weeklyFile);
+                    weeklys.RemoveRange(0, 13);
+
+                    if (weeklys.Count != 0)
+                    {
+                        foreach (var weekly in weeklys)
+                        {
+                            var weeklyCheck = weekly.Split(" ", StringSplitOptions.None).ToList<string>();
+                            var category = weeklyCheck[0];
+
+                            if (category.ToLower() == "types" && pcgSpawn.Type.Contains(weeklyCheck[2]))
+                            {
+                                GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} {weeklyCheck[2]} Types! djkostRGBBlob");
+                            }
+
+                            if (category.ToLower() == "bst")
+                            {
+                                var bstNumber = Convert.ToInt32(weeklyCheck[3]);
+
+                                if (weeklyCheck[2] == ">" && pcgSpawn.BST >= bstNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon with {bstNumber} BST or Higher! djkostRGBBlob");
+                                }
+
+                                if (weeklyCheck[2] == "<" && pcgSpawn.BST <= bstNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon with {bstNumber} BST or Lower! djkostRGBBlob");
+                                }
+                            }
+
+                            if (category.ToLower() == "weight")
+                            {
+                                var weightNumber = Convert.ToDouble(weeklyCheck[3]);
+                                var pcgWeight = Convert.ToDouble(pcgSpawn.Weight.Replace("Lbs", ""));
+
+                                if (weeklyCheck[2] == ">" && pcgWeight > weightNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon Heavier than {weightNumber}lbs! djkostRGBBlob");
+                                }
+
+                                if (weeklyCheck[2] == "<" && pcgWeight < weightNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon Lighter than {weightNumber}lbs! djkostRGBBlob");
+                                }
+                            }
+                        }
+                    }
+
+                    if (pcgSpawn.Tier == "A" || pcgSpawn.Tier == "S")
+                    {
+                        GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob djkostRGBBlob {pcgSpawn.Tier} Tier Hype!!! djkostRGBBlob djkostRGBBlob");
+                    }
+
+                    client.Dispose();
+
+                    return;
                 }
 
                 return;
