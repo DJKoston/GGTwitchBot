@@ -11,14 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GGTwitchBot.DAL.Migrations.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20221112033624_PCGEditCore")]
-    partial class PCGEditCore
+    [Migration("20230212033746_Recreated")]
+    partial class Recreated
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.11")
+                .HasAnnotation("ProductVersion", "6.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
@@ -89,6 +89,9 @@ namespace GGTwitchBot.DAL.Migrations.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<bool>("BetaTester")
+                        .HasColumnType("bit");
 
                     b.Property<string>("StreamerUsername")
                         .HasColumnType("nvarchar(max)");

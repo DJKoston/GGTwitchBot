@@ -2,6 +2,7 @@
 using GGTwitchBot.DAL.Models;
 using Newtonsoft.Json.Linq;
 using PokeApiNet;
+using System.Diagnostics.Eventing.Reader;
 using TwitchLib.Api;
 
 namespace GGTwitchBot.Bot
@@ -11,6 +12,7 @@ namespace GGTwitchBot.Bot
         PokeApiClient pokeClient;
         TwitchAPI TwitchAPI;
         TwitchClient GGTwitch;
+
         public ConsoleColor twitchColor;
         public ConsoleColor fail;
 
@@ -21,16 +23,26 @@ namespace GGTwitchBot.Bot
         public bool pokeNameSet = false;
 
         public string pokeBotUsername = "pokemoncommunitygame";
-        //public string pokeBotUsername = "djkoston";
+
+        public string environmentName = null; 
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
+            environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+            if(environmentName =="Development") 
+            {
+                pokeBotUsername = "djkoston";
+            }
+
             twitchColor = ConsoleColor.DarkMagenta;
+            fail = ConsoleColor.Red;
 
             var botVersion = typeof(Bot).Assembly.GetName().Version.ToString();
             Log("-----------------------------");
             Log("Logging Started.");
             Log($"Bot Version: {botVersion}");
+            Log($"Environment Name: {environmentName}");
 
             Log("Starting PokeApi Client...");
             pokeClient = new PokeApiClient();
@@ -86,7 +98,9 @@ namespace GGTwitchBot.Bot
             Log("Connecting to Twitch", twitchColor);
             GGTwitch.Connect();
             Log("Connected to Twitch!", twitchColor);
-            Log("GG-Bot is Ready.", ConsoleColor.Green);
+            
+            if(environmentName == "Beta") { Log("GG-Bot Beta is Ready.", ConsoleColor.Green); }
+            else if(environmentName == "Production") { Log("GG-Bot is Ready.", ConsoleColor.Green); }
         }
 
         private readonly IStreamerService _streamService;
@@ -106,10 +120,6 @@ namespace GGTwitchBot.Bot
             var argumentsCount = argumentsAsList.Count();
             var argumentsAsString = e.Command.ArgumentsAsString;
             var targetUserName = e.Command.ArgumentsAsString.ToLower().Replace("@", "");
-
-            //Beta Testing
-            var betaTesterFile = File.ReadAllLines("/home/container/testers.txt");
-            var betaTesters = new List<string>(betaTesterFile);
 
             //Whitelist
             var whitelistFile = File.ReadAllLines("/home/container/whitelist.txt");
@@ -175,19 +185,6 @@ namespace GGTwitchBot.Bot
 
                 return;
             }
-            if (command == "betaannounce" && userName == "djkoston" && streamerUserName == "generationgamersttv")
-            {
-                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
-
-                foreach (var channel in betaTesters)
-                {
-                    GGSendMessage(channel, argumentsAsString);
-                    Log($"Announcement sent to: {channel}");
-                }
-
-                return;
-
-            }
             if (command == "dadjoke")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
@@ -226,11 +223,25 @@ namespace GGTwitchBot.Bot
 
                 GGSendMessage(streamerUserName, $"Everybody looks in awe as the coin does several flips in the air before it rests on @{userDisplayName}'s hand. The crowd stands and waits as the result is called out: It's {resultString}");
             }
+            if (command == "ggjoin" && streamerUserName == "generationgamersttv" && userName == "generationgamerttv" && environmentName != "Beta")
+            {
+                if (argumentsCount == 1)
+                {
+                    GGTwitch.JoinChannel(targetUserName);
+                }
+            }
             if (command == "ggleave")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
-                if (streamerUserName == "generationgamersttv")
+                if(userName == "generationgamersttv" && streamerUserName == "generationgamersttv" && environmentName != "Beta")
+                {
+                    GGTwitch.LeaveChannel(targetUserName);
+
+                    return;
+                }
+
+                if (userName != "generationgamersttv" && streamerUserName == "generationgamersttv" && environmentName != "Beta")
                 {
                     GGSendMessage(streamerUserName, "To get the bot to leave your channel, run this command in your own chat.");
 
@@ -247,19 +258,19 @@ namespace GGTwitchBot.Bot
                     return;
                 }
             }
-            if (command == "join" && streamerUserName == "generationgamersttv")
+            if (command == "join" && streamerUserName == "generationgamersttv" && environmentName != "Beta")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
                 if (argumentsCount == 0)
                 {
-                    var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == userName);
+                    var isStream = _streamService.GetAllStreams().FirstOrDefault(x => x.StreamerUsername == userName);
 
                     if (whitelist.Contains(userName))
                     {
                         if (isStream == null)
                         {
-                            _streamService.NewStreamAsync(userName);
+                            _streamService.NewStream(userName);
                             GGTwitch.JoinChannel(userName);
 
                             GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to your channel! If you want me to leave, just type !ggleave in your channel.");
@@ -296,13 +307,13 @@ namespace GGTwitchBot.Bot
 
                 else if (argumentsCount == 1)
                 {
-                    var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == targetUserName.ToLower());
+                    var isStream = _streamService.GetAllStreams().FirstOrDefault(x => x.StreamerUsername == targetUserName);
 
                     if (whitelist.Contains(targetUserName))
                     {
                         if (isStream == null)
                         {
-                            _streamService.NewStreamAsync(targetUserName.ToLower());
+                            _streamService.NewStream(targetUserName.ToLower());
                             GGTwitch.JoinChannel(targetUserName);
 
                             GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to {targetUserName}! If you want me to leave, just type !ggleave in their chat.");
@@ -337,6 +348,68 @@ namespace GGTwitchBot.Bot
                     }
                 }
             }
+            if (command == "joinbeta" && (userName == "djkoston" || userName == "tactlessturtleplays" || userName == "wolfyeon") && streamerUserName == "generationgamersttv" && environmentName == "Beta")
+            {
+                if (argumentsCount == 1)
+                {
+                    var stream = _streamService.GetAllStreams().FirstOrDefault(x => x.StreamerUsername == targetUserName);
+
+                    if (whitelist.Contains(targetUserName))
+                    {
+                        if (stream == null)
+                        {
+                            _streamService.NewBetaStream(targetUserName);
+                            GGTwitch.JoinChannel(targetUserName);
+                            GGSendMessage(streamerUserName, $"!ggleave {targetUserName}");
+
+                            GGSendMessage(streamerUserName, $"Added {targetUserName} to the beta.");
+                        }
+
+                        else
+                        {
+                            _streamService.AddUserToBeta(targetUserName);
+
+                            GGTwitch.JoinChannel(targetUserName);
+                            GGSendMessage(streamerUserName, $"!ggleave {targetUserName}");
+
+                            GGSendMessage(streamerUserName, $"Added {targetUserName} to the beta.");
+                        }
+                    }
+                    else
+                    {
+                        GGSendMessage(streamerUserName, "Target is not whitelisted, please add them to the whitelist to add them to the beta.");
+                    }
+                }
+                else if(argumentsCount == 0)
+                {
+                    GGSendMessage(streamerUserName, "You are already a part of the beta.");
+                }
+            }
+            if (command == "leavebeta" && (userName == "djkoston" || userName == "tactlessturtleplays" || userName == "wolfyeon") && streamerUserName == "generationgamersttv" && environmentName == "Beta")
+            {
+                if (argumentsCount == 1)
+                {
+                    var stream = _streamService.GetAllStreams().FirstOrDefault(x => x.StreamerUsername == targetUserName);
+
+                    if (stream.BetaTester == true)
+                    {
+                        _streamService.RemoveUserFromBeta(targetUserName);
+
+                        GGTwitch.LeaveChannel(targetUserName);
+                        GGSendMessage(streamerUserName, $"!ggjoin {targetUserName}");
+
+                        GGSendMessage(streamerUserName, $"Removed {targetUserName} from the beta.");
+                    }
+                    else
+                    {
+                        GGSendMessage(streamerUserName, "Target is not whitelisted, please add them to the whitelist to add them to the beta.");
+                    }
+                }
+                else if (argumentsCount == 0)
+                {
+                    GGSendMessage(streamerUserName, "You are already a part of the beta.");
+                }
+            }
             if (command == "ping")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
@@ -357,100 +430,7 @@ namespace GGTwitchBot.Bot
                 
                 return;
             }
-            if (command == "rejoin" && streamerUserName == "generationgamersttv")
-            {
-                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
-
-                if (argumentsCount == 0)
-                {
-                    var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == userName);
-
-                    if (whitelist.Contains(userName))
-                    {
-                        if (isStream == null)
-                        {
-                            GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, this bot is not currently in your channel. You are whitelisted, so please do !join for me to join your channel.");
-
-                            return;
-                        }
-
-                        else
-                        {
-                            GGSendMessage(streamerUserName, $"I am just about to reconnect to your channel @{userDisplayName}, give me a moment.");
-
-                            GGTwitch.LeaveChannel(userName);
-                            await Task.Delay(1000);
-                            GGTwitch.JoinChannel(userName);
-
-                            GGSendMessage(streamerUserName, $"I have reconnected to your channel @{userDisplayName}, if you still have an issue, please contact DJKoston#0001 on Discord.");
-
-                            return;
-                        }
-                    }
-
-                    else
-                    {
-                        if (isStream == null)
-                        {
-                            GGSendMessage(streamerUserName, "You are not currently whitelisted. Please contact DJKoston#0001 on Discord to be whitelisted.");
-
-                            return;
-                        }
-
-                        else
-                        {
-                            GGSendMessage(streamerUserName, "You already have GG-Bot in your channel. You are not on our whitelist so please contact DJKoston#0001 on Discord to be whitelisted then use !rejoin");
-
-                            return;
-                        }
-                    }
-                }
-
-                else if (argumentsCount == 1)
-                {
-                    var isStream = _streamService.GetStreamsToConnect().FirstOrDefault(x => x.StreamerUsername == targetUserName.ToLower());
-
-                    if (whitelist.Contains(targetUserName))
-                    {
-                        if (isStream == null)
-                        {
-                            GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, this bot is not currently in {targetUserName}. They are whitelisted, so please do !join @{targetUserName} for me to join their channel.");
-
-                            return;
-                        }
-
-                        else
-                        {
-                            GGSendMessage(streamerUserName, $"I am just about to reconnect to {targetUserName}'s channel @{userDisplayName}, give me a moment.");
-
-                            GGTwitch.LeaveChannel(userName);
-                            GGTwitch.JoinChannel(userName);
-
-                            GGSendMessage(streamerUserName, $"I have reconnected to {targetUserName}'s channel @{userDisplayName}, if they still have an issue, please contact DJKoston#0001 on Discord.");
-
-                            return;
-                        }
-                    }
-
-                    else
-                    {
-                        if (isStream == null)
-                        {
-                            GGSendMessage(streamerUserName, "The channel you are trying to add is not currently whitelisted. Please contact DJKoston#0001 on Discord to be whitelisted.");
-
-                            return;
-                        }
-
-                        else
-                        {
-                            GGSendMessage(streamerUserName, $"This channel already has GG-Bot. They are not on our whitelist so please contact DJKoston#0001 on Discord to be whitelisted then use !rejoin @{targetUserName}");
-
-                            return;
-                        }
-                    }
-                }
-            }
-            if ((command == "spawned" || command == "lastspawn") && betaTesters.Contains(streamerUserName))
+            if ((command == "spawned" || command == "lastspawn") && environmentName == "Beta")
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
@@ -496,10 +476,6 @@ namespace GGTwitchBot.Bot
 
         private async void OnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
-            //Remove when Beta is over
-            var betaTesterFile = File.ReadAllLines("/home/container/testers.txt");
-            var betaTesters = new List<string>(betaTesterFile);
-
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.ToLower().Contains("catch it using !pokecatch (winners revealed in 90s)"))
             {
                 if (pokeNameSet == false)
@@ -546,7 +522,7 @@ namespace GGTwitchBot.Bot
                     newPCGSpawn = true;
                 }
 
-                if (betaTesters.Contains(e.ChatMessage.Channel))
+                if (environmentName == "Beta")
                 {
                     GGSendMessage(e.ChatMessage.Channel, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
 
@@ -757,13 +733,33 @@ namespace GGTwitchBot.Bot
 
         private void OnGGClientConnected(object sender, OnConnectedArgs e)
         {
-            var streamsToConnect = _streamService.GetStreamsToConnect();
-
-            if (streamsToConnect == null) { Log("No Streams to connect to", fail); return; }
-
-            foreach (Streams stream in streamsToConnect)
+            if(environmentName == "Beta")
             {
-                GGTwitch.JoinChannel(stream.StreamerUsername);
+                var betaStreams = _streamService.GetBetaStreamsToConnect();
+
+                if (betaStreams.Count == 0) { Log("No Beta Streams to connect to.", fail); return; }
+
+                foreach (Streams betaStream in betaStreams)
+                {
+                    GGTwitch.JoinChannel(betaStream.StreamerUsername);
+                }
+            }
+
+            else if(environmentName == "Development")
+            {
+                Log("Bot Running in Development Mode, no streams will be connected to at this time.");
+            }
+
+            else
+            {
+                var streams = _streamService.GetNonBetaStreamsToConnect();
+
+                if (streams.Count == 0) { Log("No Streams to connect to.", fail); return; }
+
+                foreach (Streams stream in streams)
+                {
+                    GGTwitch.JoinChannel(stream.StreamerUsername);
+                }
             }
         }
 

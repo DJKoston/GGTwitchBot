@@ -16,4 +16,8 @@
     <ProjectReference Include="..\GGTwitchBot.DAL\GGTwitchBot.DAL.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>

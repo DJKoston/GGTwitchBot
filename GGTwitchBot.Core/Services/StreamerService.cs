@@ -6,10 +6,14 @@ namespace GGTwitchBot.Core.Services
 {
     public interface IStreamerService
     {
-        Task<Streams> GetStream(string streamId);
-        void NewStreamAsync(string streamId);
+        List<Streams> GetAllStreams();
+        void NewStream(string streamId);
+        void NewBetaStream(string streamId);
         void DeleteStreamAsync(string streamId);
-        List<Streams> GetStreamsToConnect();
+        void AddUserToBeta(string streamId);
+        void RemoveUserFromBeta(string streamId);
+        List<Streams> GetNonBetaStreamsToConnect();
+        List<Streams> GetBetaStreamsToConnect();
     }
 
     public class StreamService : IStreamerService
@@ -21,19 +25,42 @@ namespace GGTwitchBot.Core.Services
             _options = options;
         }
 
-        public Task<Streams> GetStream(string streamId)
+        public List<Streams> GetAllStreams()
         {
             using var context = new Context(_options);
 
-            return context.Streams.FirstOrDefaultAsync(x => x.StreamerUsername == streamId);
+            List<Streams> streams = new();
+
+            var allStreams = context.Streams.Where(x => x.StreamerUsername != null);
+
+            foreach (Streams stream in allStreams)
+            {
+                streams.Add(stream);
+            }
+
+            return streams;
         }
 
-        public void NewStreamAsync(string streamId)
+        public void NewStream(string streamId)
         {
             using var context = new Context(_options);
 
             Streams stream = new();
             stream.StreamerUsername = streamId;
+            stream.BetaTester = false;
+
+            context.Add(stream);
+
+            context.SaveChanges();
+        }
+
+        public void NewBetaStream(string streamId)
+        {
+            using var context = new Context(_options);
+
+            Streams stream = new();
+            stream.StreamerUsername = streamId;
+            stream.BetaTester = true;
 
             context.Add(stream);
 
@@ -50,16 +77,56 @@ namespace GGTwitchBot.Core.Services
 
             context.SaveChanges();
         }
+        
+        public void AddUserToBeta(string streamId)
+        {
+            using var context = new Context(_options);
 
-        public List<Streams> GetStreamsToConnect()
+            var stream = context.Streams.FirstOrDefault(x => x.StreamerUsername == streamId);
+
+            stream.BetaTester = true;
+
+            context.Update(stream);
+            context.SaveChanges();
+        }
+
+        public void RemoveUserFromBeta(string streamId)
+        {
+            using var context = new Context(_options);
+
+            var stream = context.Streams.FirstOrDefault(x => x.StreamerUsername == streamId);
+
+            stream.BetaTester = false;
+
+            context.Update(stream);
+            context.SaveChanges();
+        }
+
+        public List<Streams> GetNonBetaStreamsToConnect()
         {
             using var context = new Context(_options);
 
             List<Streams> streams = new();
 
-            var allStreams = context.Streams.Where(x => x.StreamerUsername != null);
+            var allStreams = context.Streams.Where(x => x.StreamerUsername != null).Where(x => x.BetaTester == false);
 
             foreach(Streams stream in allStreams)
+            {
+                streams.Add(stream);
+            }
+
+            return streams;
+        }
+
+        public List<Streams> GetBetaStreamsToConnect()
+        {
+            using var context = new Context(_options);
+
+            List<Streams> streams = new();
+
+            var allStreams = context.Streams.Where(x => x.StreamerUsername != null).Where(x => x.BetaTester == true);
+
+            foreach (Streams stream in allStreams)
             {
                 streams.Add(stream);
             }
