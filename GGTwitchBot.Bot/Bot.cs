@@ -4,6 +4,9 @@ using Newtonsoft.Json.Linq;
 using PokeApiNet;
 using System.Diagnostics.Eventing.Reader;
 using TwitchLib.Api;
+using SimplifiedSearch;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
+using TwitchLib.Communication.Interfaces;
 
 namespace GGTwitchBot.Bot
 {
@@ -12,6 +15,8 @@ namespace GGTwitchBot.Bot
         PokeApiClient pokeClient;
         TwitchAPI TwitchAPI;
         TwitchClient GGTwitch;
+
+        List<PCG> allPokemon;
 
         public ConsoleColor twitchColor;
         public ConsoleColor fail;
@@ -432,6 +437,9 @@ namespace GGTwitchBot.Bot
 
                 return;
             }
+
+            //PCG Based Commands
+
             if (command == "pokecatch")
             {
                 var pokeCheck = _pokecatchService.GetPokecatchersListAsync(streamerUserName);
@@ -486,6 +494,327 @@ namespace GGTwitchBot.Bot
 
                 return;
             }
+            if (command == "dex" && environmentName == "Development")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                if (argumentsCount == 0)
+                {
+                    HttpClient client = new();
+
+                    if (pcgSpawn == null)
+                    {
+                        using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                        {
+                            StreamReader reader = new(dataStream);
+
+                            string responseFromServer = reader.ReadToEnd();
+
+                            var pcgAPI = JObject.Parse(responseFromServer);
+                            var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
+                            var dexNumber = pcgSpawnDex.ToString("000");
+
+                            pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                            if (pcgSpawn == null)
+                            {
+                                if (pokeName == null)
+                                {
+                                    GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+
+                                    return;
+                                }
+                                else
+                                {
+                                    pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                                }
+                            }
+                        }
+                    }
+
+                    GGSendMessage(streamerUserName, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name} - {pcgSpawn.Tier} Tier] -> [Type] {pcgSpawn.Type} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
+
+                }
+
+                else
+                {
+                    var argumentIsNumber = Int32.TryParse(argumentsAsString, out int result);
+
+                    IList<PCG> searchedMon = null;
+                    PCG matchedMon = null;
+
+                    if (!argumentIsNumber)
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(argumentsAsString, x => x.Name);
+                    }
+
+                    else
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(result.ToString("000"), x => x.DexNumber);
+                    }
+
+                    matchedMon = searchedMon.FirstOrDefault();
+
+                    GGSendMessage(streamerUserName, $"[#{matchedMon.DexNumber} {matchedMon.Name} - {matchedMon.Tier} Tier] -> [Type] {matchedMon.Type} [Gen] {matchedMon.Generation} [Dex] {matchedMon.DexInfo} [Ball] {matchedMon.SuggestedBalls} [BST] {matchedMon.BST}");
+                }
+            }
+            if (command == "tier" && environmentName == "Development")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                if (argumentsCount == 0)
+                {
+                    HttpClient client = new();
+
+                    if (pcgSpawn == null)
+                    {
+                        using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                        {
+                            StreamReader reader = new(dataStream);
+
+                            string responseFromServer = reader.ReadToEnd();
+
+                            var pcgAPI = JObject.Parse(responseFromServer);
+                            var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
+                            var dexNumber = pcgSpawnDex.ToString("000");
+
+                            pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                            if (pcgSpawn == null)
+                            {
+                                if (pokeName == null)
+                                {
+                                    GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+
+                                    return;
+                                }
+                                else
+                                {
+                                    pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                                }
+                            }
+                        }
+                    }
+
+                    GGSendMessage(streamerUserName, $"#{pcgSpawn.DexNumber} {pcgSpawn.Name} is an {pcgSpawn.Tier} Tier.");
+
+                }
+
+                else
+                {
+                    var argumentIsNumber = Int32.TryParse(argumentsAsString, out int result);
+
+                    IList<PCG> searchedMon = null;
+                    PCG matchedMon = null;
+
+                    if (!argumentIsNumber)
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(argumentsAsString, x => x.Name);
+                    }
+
+                    else
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(result.ToString("000"), x => x.DexNumber);
+                    }
+
+                    matchedMon = searchedMon.FirstOrDefault();
+
+                    GGSendMessage(streamerUserName, $"#{matchedMon.DexNumber} {matchedMon.Name} is an {matchedMon.Tier} Tier.");
+                }
+            }
+            if (command == "weight" && environmentName == "Development")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                if (argumentsCount == 0)
+                {
+                    HttpClient client = new();
+
+                    if (pcgSpawn == null)
+                    {
+                        using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                        {
+                            StreamReader reader = new(dataStream);
+
+                            string responseFromServer = reader.ReadToEnd();
+
+                            var pcgAPI = JObject.Parse(responseFromServer);
+                            var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
+                            var dexNumber = pcgSpawnDex.ToString("000");
+
+                            pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                            if (pcgSpawn == null)
+                            {
+                                if (pokeName == null)
+                                {
+                                    GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+
+                                    return;
+                                }
+                                else
+                                {
+                                    pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                                }
+                            }
+                        }
+                    }
+
+                    GGSendMessage(streamerUserName, $"#{pcgSpawn.DexNumber} {pcgSpawn.Name} weighs {pcgSpawn.Weight}.");
+
+                }
+
+                else
+                {
+                    var argumentIsNumber = Int32.TryParse(argumentsAsString, out int result);
+
+                    IList<PCG> searchedMon = null;
+                    PCG matchedMon = null;
+
+                    if (!argumentIsNumber)
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(argumentsAsString, x => x.Name);
+                    }
+
+                    else
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(result.ToString("000"), x => x.DexNumber);
+                    }
+
+                    matchedMon = searchedMon.FirstOrDefault();
+
+                    GGSendMessage(streamerUserName, $"#{matchedMon.DexNumber} {matchedMon.Name} weighs {matchedMon.Weight}.");
+                }
+            }
+            if (command == "type" && environmentName == "Development")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                if (argumentsCount == 0)
+                {
+                    HttpClient client = new();
+
+                    if (pcgSpawn == null)
+                    {
+                        using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                        {
+                            StreamReader reader = new(dataStream);
+
+                            string responseFromServer = reader.ReadToEnd();
+
+                            var pcgAPI = JObject.Parse(responseFromServer);
+                            var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
+                            var dexNumber = pcgSpawnDex.ToString("000");
+
+                            pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                            if (pcgSpawn == null)
+                            {
+                                if (pokeName == null)
+                                {
+                                    GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+
+                                    return;
+                                }
+                                else
+                                {
+                                    pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                                }
+                            }
+                        }
+                    }
+
+                    GGSendMessage(streamerUserName, $"#{pcgSpawn.DexNumber} {pcgSpawn.Name} is a {pcgSpawn.Type} Type Pokemon.");
+
+                }
+
+                else
+                {
+                    var argumentIsNumber = Int32.TryParse(argumentsAsString, out int result);
+
+                    IList<PCG> searchedMon = null;
+                    PCG matchedMon = null;
+
+                    if (!argumentIsNumber)
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(argumentsAsString, x => x.Name);
+                    }
+
+                    else
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(result.ToString("000"), x => x.DexNumber);
+                    }
+
+                    matchedMon = searchedMon.FirstOrDefault();
+
+                    GGSendMessage(streamerUserName, $"#{matchedMon.DexNumber} {matchedMon.Name} is a {matchedMon.Type} Type.");
+                }
+            }
+            if (command == "ball" && environmentName == "Development")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                if (argumentsCount == 0)
+                {
+                    HttpClient client = new();
+
+                    if (pcgSpawn == null)
+                    {
+                        using (Stream dataStream = await client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/"))
+                        {
+                            StreamReader reader = new(dataStream);
+
+                            string responseFromServer = reader.ReadToEnd();
+
+                            var pcgAPI = JObject.Parse(responseFromServer);
+                            var pcgSpawnDex = Convert.ToInt32(pcgAPI["pokedex_id"]);
+                            var dexNumber = pcgSpawnDex.ToString("000");
+
+                            pcgSpawn = await _pcgService.GetPokemonByDexNumberAsync(dexNumber);
+
+                            if (pcgSpawn == null)
+                            {
+                                if (pokeName == null)
+                                {
+                                    GGSendMessage(streamerUserName, "I haven't tracked a spawn yet. I probably have just restarted.");
+
+                                    return;
+                                }
+                                else
+                                {
+                                    pcgSpawn = await _pcgService.GetPokemonByNameAsync(pokeName);
+                                }
+                            }
+                        }
+                    }
+
+                    GGSendMessage(streamerUserName, $"Steve suggests you throw: {pcgSpawn.SuggestedBalls} at #{pcgSpawn.DexNumber} {pcgSpawn.Name}");
+
+                }
+
+                else
+                {
+                    var argumentIsNumber = Int32.TryParse(argumentsAsString, out int result);
+
+                    IList<PCG> searchedMon = null;
+                    PCG matchedMon = null;
+
+                    if (!argumentIsNumber)
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(argumentsAsString, x => x.Name);
+                    }
+
+                    else
+                    {
+                        searchedMon = await allPokemon.SimplifiedSearchAsync(result.ToString("000"), x => x.DexNumber);
+                    }
+
+                    matchedMon = searchedMon.FirstOrDefault();
+
+                    GGSendMessage(streamerUserName, $"Steve suggests you throw: {matchedMon.SuggestedBalls} at #{matchedMon.DexNumber} {matchedMon.Name}");
+                }
+            }
+
         }
 
         private async void OnMessageReceived(object sender, OnMessageReceivedArgs e)
@@ -747,7 +1076,9 @@ namespace GGTwitchBot.Bot
 
         private void OnGGClientConnected(object sender, OnConnectedArgs e)
         {
-            if(environmentName == "Beta")
+            allPokemon = _pcgService.GetAllPokemon();
+
+            if (environmentName == "Beta")
             {
                 var betaStreams = _streamService.GetBetaStreamsToConnect();
 

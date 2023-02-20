@@ -10,6 +10,7 @@ namespace GGTwitchBot.Core.Services
     {
         Task<PCG> GetPokemonByDexNumberAsync(string dexNumber);
         Task<PCG> GetPokemonByNameAsync(string pokemonName);
+        List<PCG> GetAllPokemon();
     }
 
     public class PCGService : IPCGService
@@ -33,6 +34,13 @@ namespace GGTwitchBot.Core.Services
             using var context = new Context(_options);
 
             return await context.PCG.FirstOrDefaultAsync(x => x.Name == pokemonName);
+        }
+        
+        public List<PCG> GetAllPokemon()
+        {
+            using var context = new Context(_options);
+
+            return context.PCG.ToList();
         }
     }
 }
