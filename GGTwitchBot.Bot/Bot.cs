@@ -814,7 +814,10 @@ namespace GGTwitchBot.Bot
                     GGSendMessage(streamerUserName, $"Steve suggests you throw: {matchedMon.SuggestedBalls} at #{matchedMon.DexNumber} {matchedMon.Name}");
                 }
             }
-
+            if (command == "weak" && environmentName == "Development")
+            {
+                GGSendMessage(streamerUserName, "We are currently working on this feature, and it's not currently available.");
+            }
         }
 
         private async void OnMessageReceived(object sender, OnMessageReceivedArgs e)
