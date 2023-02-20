@@ -1045,6 +1045,69 @@ namespace GGTwitchBot.Bot
                 return;
             }
 
+            if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.Contains("National-Dex:") && e.ChatMessage.Message.Contains("Spawnable-Dex:"))
+            {
+                var message = e.ChatMessage.Message.Split(" ").ToList();
+
+                var nationalDex = new List<string>();
+                var spawnableDex = new List<string>();
+                var nationalPercent = "";
+                var spawnablePercent = "";
+
+                int nationalCaught = 0;
+                int nationalTotal = 0;
+                double nationalCaughtPercent = 0;
+                int spawnableCaught = 0;
+                int spawnableTotal = 0;
+                double spawnableCaughtPercent = 0;
+
+                int nationalLeft = 0;
+                int spawnableLeft = 0;
+                string nationalPercentLeft = "";
+                string spawnablePercentLeft = "";
+
+                if(message.Count == 8)
+                {
+                    nationalDex = message[2].Split("/").ToList();
+                    spawnableDex = message[6].Split("/").ToList();
+                    nationalPercent = message[3].Replace("(", "").Replace("%)", "");
+                    spawnablePercent = message[7].Replace("(", "").Replace("%)", "");
+
+                    nationalCaught = Int32.Parse(nationalDex[0]);
+                    nationalTotal = Int32.Parse(nationalDex[1]);
+                    nationalCaughtPercent = Double.Parse(nationalPercent);
+                    spawnableCaught = Int32.Parse(spawnableDex[0]);
+                    spawnableTotal = Int32.Parse(spawnableDex[1]);
+                    spawnableCaughtPercent = Double.Parse(spawnablePercent);
+
+                    nationalLeft = nationalTotal - nationalCaught;
+                    spawnableLeft = spawnableTotal - spawnableCaught;
+                    nationalPercentLeft = (100 - nationalCaughtPercent).ToString("0.##");
+                    spawnablePercentLeft = (100 - spawnableCaughtPercent).ToString("0.##");
+                }
+                if (message.Count == 7)
+                {
+                    nationalDex = message[2].Split("/").ToList();
+                    spawnableDex = message[5].Split("/").ToList();
+                    nationalPercent = message[3].Replace("(", "").Replace("%)", "");
+                    spawnablePercent = message[6].Replace("(", "").Replace("%)", "");
+
+                    nationalCaught = Int32.Parse(nationalDex[0]);
+                    nationalTotal = Int32.Parse(nationalDex[1]);
+                    nationalCaughtPercent = Double.Parse(nationalPercent);
+                    spawnableCaught = Int32.Parse(spawnableDex[0]);
+                    spawnableTotal = Int32.Parse(spawnableDex[1]);
+                    spawnableCaughtPercent = Double.Parse(spawnablePercent);
+
+                    nationalLeft = nationalTotal - nationalCaught;
+                    spawnableLeft = spawnableTotal - spawnableCaught;
+                    nationalPercentLeft = (100 - nationalCaughtPercent).ToString("0.##");
+                    spawnablePercentLeft = (100 - spawnableCaughtPercent).ToString("0.##");
+                }
+
+                GGSendMessage(e.ChatMessage.Channel, $"{message[0]} - Remaining National-Dex: {nationalLeft}/{nationalTotal} ({nationalPercentLeft}%) - Remaining Spawnable-Dex: {spawnableLeft}/{spawnableTotal} ({spawnablePercentLeft}%)");
+            }
+
             if (e.ChatMessage.Username == "gordopokebot" && e.ChatMessage.Message == "<3 Connected in chat! <3")
             {
                 GGSendMessage(e.ChatMessage.Channel, "^^ <3 And I'm also here! <3 ^^");
