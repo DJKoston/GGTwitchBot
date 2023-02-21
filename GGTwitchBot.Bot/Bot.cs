@@ -29,7 +29,9 @@ namespace GGTwitchBot.Bot
 
         public string pokeBotUsername = "pokemoncommunitygame";
 
-        public string environmentName = null; 
+        public string environmentName = null;
+
+        public int rawrCount = 0;
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -817,6 +819,17 @@ namespace GGTwitchBot.Bot
             if (command == "weak" && environmentName == "Development")
             {
                 GGSendMessage(streamerUserName, "We are currently working on this feature, and it's not currently available.");
+            }
+
+            //Wolfy private commands
+
+            if (command == "rawr")
+            {
+                Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
+
+                rawrCount++;
+
+                GGSendMessage(streamerUserName, $"*rawrs back* - I have rawred {rawrCount} times since I've been alived");
             }
         }
 
