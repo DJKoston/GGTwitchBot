@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <Configurations>Debug;Release</Configurations>
-    <Version>2023.3.10.6214</Version>
+    <Version>2023.3.10.6442</Version>
     <UserSecretsId>29eaafd6-987c-420b-98c6-42f0c45f6b1a</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <AssemblyName>TwitchBot</AssemblyName>
-    <IncrementVersionOnBuild>yyyy.MM.dd.*</IncrementVersionOnBuild>
+    <IncrementVersionOnBuild>yyyy.MM.dd.+</IncrementVersionOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Live_Build|AnyCPU'">

@@ -44,7 +44,7 @@ namespace GGTwitchBot.Bot
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
-            environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            environmentName = "Beta";
 
             if(environmentName =="Development") 
             {
@@ -245,13 +245,13 @@ namespace GGTwitchBot.Bot
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
                 var botVersion = typeof(Bot).Assembly.GetName().Version.ToString();
-                argumentsAsString.Replace("$version", $"(Version: {botVersion}");
+                var arguments = argumentsAsString.Replace("$version", $"(Version: {botVersion})");
 
                 var channels = GGTwitch.JoinedChannels;
 
                 foreach (var channel in channels)
                 {
-                    GGSendMessage(channel.Channel, argumentsAsString);
+                    GGSendMessage(channel.Channel, arguments);
                     Log($"Announcement sent to: {channel.Channel}");
                 }
 
