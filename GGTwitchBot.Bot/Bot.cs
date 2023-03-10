@@ -7,6 +7,9 @@ using TwitchLib.Api;
 using SimplifiedSearch;
 using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using TwitchLib.Communication.Interfaces;
+using TwitchLib.Api.Services;
+using System.Timers;
+using TwitchLib.Api.Services.Events.LiveStreamMonitor;
 
 namespace GGTwitchBot.Bot
 {
@@ -15,6 +18,7 @@ namespace GGTwitchBot.Bot
         PokeApiClient pokeClient;
         TwitchAPI TwitchAPI;
         TwitchClient GGTwitch;
+        LiveStreamMonitorService Monitor;
 
         List<PCG> allPokemon;
 
@@ -32,6 +36,11 @@ namespace GGTwitchBot.Bot
         public string environmentName = null;
 
         public int rawrCount = 0;
+
+        public bool newQuickBallTimer = true;
+        public bool newTimerBallTimer = true;
+        public System.Timers.Timer quickBallTimer = new();
+        public System.Timers.Timer timerBallTimer = new();
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -94,6 +103,44 @@ namespace GGTwitchBot.Bot
             GGTwitch.AddChatCommandIdentifier('!');
             Log("Bot Initialised...");
 
+            Log("Starting Twitch Live Monitor...");
+            Monitor = new(TwitchAPI, 60);
+            Monitor.OnStreamOnline += OnStreamOnline;
+            Monitor.OnStreamOffline += OnStreamOffline;
+
+            var lst = new List<string>();
+
+            if(environmentName == "Beta")
+            {
+                lst = _streamService.GetStreamsToMonitor(true);
+            }
+            if(environmentName == "Live")
+            {
+                lst = _streamService.GetStreamsToMonitor(false);
+            }
+
+            if(lst.Count != 0)
+            {
+                Monitor.SetChannelsByName(lst);
+                Monitor.Start();
+                if(Monitor.Enabled)
+                {
+                    Log($"Live Monitoring has started. Monitoring {lst.Count} channels.", twitchColor);
+                    foreach (var channel in lst)
+                    {
+                        Log($"Monitoring: {channel}");
+                    }
+                }
+                else
+                {
+                    Log("Live Monitor has failed to start.", fail);
+                }
+            }
+            else
+            {
+                Log("No Channels have been submitted to the monitor.", fail);
+            }
+
             Log("Subscribing to GG Client Events...");
             GGTwitch.OnConnected += OnGGClientConnected;
             GGTwitch.OnJoinedChannel += OnJoinedChannel;
@@ -108,6 +155,7 @@ namespace GGTwitchBot.Bot
             
             if(environmentName == "Beta") { Log("GG-Bot Beta is Ready.", ConsoleColor.Green); }
             else if(environmentName == "Production") { Log("GG-Bot is Ready.", ConsoleColor.Green); }
+            else if(environmentName == "Development") { Log("GG-Bot Dev is Ready.", ConsoleColor.Green); }
         }
 
         private readonly IStreamerService _streamService;
@@ -196,6 +244,9 @@ namespace GGTwitchBot.Bot
             {
                 Log($"{userDisplayName} used command '{e.Command.CommandText}' in {streamerUserName}");
 
+                var botVersion = typeof(Bot).Assembly.GetName().Version.ToString();
+                argumentsAsString.Replace("$version", $"(Version: {botVersion}");
+
                 var channels = GGTwitch.JoinedChannels;
 
                 foreach (var channel in channels)
@@ -249,6 +300,10 @@ namespace GGTwitchBot.Bot
                 if (argumentsCount == 1)
                 {
                     GGTwitch.JoinChannel(targetUserName);
+
+                    var lst = _streamService.GetStreamsToMonitor(true);
+
+                    Monitor.SetChannelsByName(lst);
                 }
             }
             if (command == "ggleave")
@@ -297,6 +352,10 @@ namespace GGTwitchBot.Bot
                             GGSendMessage(streamerUserName, $"Hi there @{userDisplayName}, I am now connected to your channel! If you want me to leave, just type !ggleave in your channel.");
                             GGSendMessage(userName, $"Hi there @{userDisplayName}, Just wanted to let you know, i'm here and waiting <3");
 
+                            var lst = _streamService.GetStreamsToMonitor(false);
+
+                            Monitor.SetChannelsByName(lst);
+
                             return;
                         }
 
@@ -333,7 +392,7 @@ namespace GGTwitchBot.Bot
                     if (whitelist.Contains(targetUserName))
                     {
                         if (isStream == null)
-                        {
+                        { 
                             _streamService.NewStream(targetUserName.ToLower());
                             GGTwitch.JoinChannel(targetUserName);
 
@@ -395,6 +454,10 @@ namespace GGTwitchBot.Bot
 
                             GGSendMessage(streamerUserName, $"Added {targetUserName} to the beta.");
                         }
+
+                        var lst = _streamService.GetStreamsToMonitor(true);
+
+                        Monitor.SetChannelsByName(lst);
                     }
                     else
                     {
@@ -420,6 +483,10 @@ namespace GGTwitchBot.Bot
                         GGSendMessage(streamerUserName, $"!ggjoin {targetUserName}");
 
                         GGSendMessage(streamerUserName, $"Removed {targetUserName} from the beta.");
+
+                        var lst = _streamService.GetStreamsToMonitor(true);
+
+                        Monitor.SetChannelsByName(lst);
                     }
                     else
                     {
@@ -1167,11 +1234,65 @@ namespace GGTwitchBot.Bot
                 {
                     GGTwitch.JoinChannel(betaStream.StreamerUsername);
                 }
+
+                HttpClient client = new();
+
+                using (Stream dataStream = client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/").Result)
+                {
+                    StreamReader reader = new(dataStream);
+
+                    string responseFromServer = reader.ReadToEnd();
+
+                    var pcgAPI = JObject.Parse(responseFromServer);
+                    var quickBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) - 10000;
+                    var timerBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) + 80000;
+
+                    //Initialise QuickBall Timer
+                    quickBallTimer.Enabled = true;
+                    quickBallTimer.Elapsed += QuickBallTimerElapsed;
+                    quickBallTimer.Interval = quickBallCountdown;
+                    quickBallTimer.AutoReset = true;
+                    quickBallTimer.Start();
+
+                    //Initialise TimerBall Timer
+                    timerBallTimer.Enabled = true;
+                    timerBallTimer.Elapsed += TimerBallTimerElapsed;
+                    timerBallTimer.Interval = timerBallCountdown;
+                    timerBallTimer.AutoReset = true;
+                    timerBallTimer.Start();
+                }
             }
 
             else if(environmentName == "Development")
             {
                 Log("Bot Running in Development Mode, no streams will be connected to at this time.");
+
+                HttpClient client = new();
+
+                using (Stream dataStream = client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/").Result)
+                {
+                    StreamReader reader = new(dataStream);
+
+                    string responseFromServer = reader.ReadToEnd();
+
+                    var pcgAPI = JObject.Parse(responseFromServer);
+                    var quickBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) - 10000;
+                    var timerBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) + 80000;
+
+                    //Initialise QuickBall Timer
+                    quickBallTimer.Enabled = true;
+                    quickBallTimer.Elapsed += QuickBallTimerElapsed;
+                    quickBallTimer.Interval = quickBallCountdown;
+                    quickBallTimer.AutoReset = true;
+                    quickBallTimer.Start();
+
+                    //Initialise TimerBall Timer
+                    timerBallTimer.Enabled = true;
+                    timerBallTimer.Elapsed += TimerBallTimerElapsed;
+                    timerBallTimer.Interval = timerBallCountdown;
+                    timerBallTimer.AutoReset = true;
+                    timerBallTimer.Start();
+                }
             }
 
             else
@@ -1185,6 +1306,54 @@ namespace GGTwitchBot.Bot
                     GGTwitch.JoinChannel(stream.StreamerUsername);
                 }
             }
+        }
+
+        private void TimerBallTimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            if (newTimerBallTimer)
+            {
+                timerBallTimer.Interval = 900000;
+
+                newTimerBallTimer = false;
+            }
+
+            var liveStreams = Monitor.LiveStreams.Values;
+
+            foreach (var stream in liveStreams)
+            {
+                GGSendMessage(stream.UserName, $"CurseLit Throw those Timer Balls! The Pokemon is about to disappear! CurseLit");
+            }
+
+            Log($"Timer Ball Timer: Notification sent to {liveStreams.Count} channels.");
+        }
+
+        private void QuickBallTimerElapsed(object sender, ElapsedEventArgs e)
+        {
+            if (newQuickBallTimer)
+            {
+                quickBallTimer.Interval = 900000;
+
+                newQuickBallTimer = false;
+            }
+
+            var liveStreams = Monitor.LiveStreams.Values;
+
+            foreach (var stream in liveStreams)
+            {
+                GGSendMessage(stream.UserName, $"CurseLit Prepare those Quick Balls! A Pokemon rustles in the distance! CurseLit");
+            }
+
+            Log($"Quick Ball Timer: Notification sent to {liveStreams.Count} channels.");
+        }
+
+        private void OnStreamOffline(object sender, OnStreamOfflineArgs e)
+        {
+            Console.WriteLine($"{e.Stream.UserName} is now Offline!"); 
+        }
+
+        private void OnStreamOnline(object sender, OnStreamOnlineArgs e)
+        {
+            Console.WriteLine($"{e.Stream.UserName} is now Live!");
         }
 
         public void OnJoinedChannel(object sender, OnJoinedChannelArgs e)

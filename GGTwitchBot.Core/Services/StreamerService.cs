@@ -7,13 +7,14 @@ namespace GGTwitchBot.Core.Services
     public interface IStreamerService
     {
         List<Streams> GetAllStreams();
-        void NewStream(string streamId);
-        void NewBetaStream(string streamId);
+        void NewStream(string streamUsername);
+        void NewBetaStream(string streamUsername);
         void DeleteStreamAsync(string streamId);
         void AddUserToBeta(string streamId);
         void RemoveUserFromBeta(string streamId);
         List<Streams> GetNonBetaStreamsToConnect();
         List<Streams> GetBetaStreamsToConnect();
+        List<string> GetStreamsToMonitor(bool betaTesters = false);
     }
 
     public class StreamService : IStreamerService
@@ -41,12 +42,12 @@ namespace GGTwitchBot.Core.Services
             return streams;
         }
 
-        public void NewStream(string streamId)
+        public void NewStream(string streamUsername)
         {
             using var context = new Context(_options);
 
             Streams stream = new();
-            stream.StreamerUsername = streamId;
+            stream.StreamerUsername = streamUsername;
             stream.BetaTester = false;
 
             context.Add(stream);
@@ -54,12 +55,12 @@ namespace GGTwitchBot.Core.Services
             context.SaveChanges();
         }
 
-        public void NewBetaStream(string streamId)
+        public void NewBetaStream(string streamUsername)
         {
             using var context = new Context(_options);
 
             Streams stream = new();
-            stream.StreamerUsername = streamId;
+            stream.StreamerUsername = streamUsername;
             stream.BetaTester = true;
 
             context.Add(stream);
@@ -132,6 +133,31 @@ namespace GGTwitchBot.Core.Services
             }
 
             return streams;
+        }
+
+        public List<string> GetStreamsToMonitor(bool betaTesters = false)
+        {
+            using var context = new Context(_options);
+
+            List<string> streamList = new();
+
+            IQueryable<Streams> streams = null;
+
+            if (betaTesters)
+            {
+                streams = context.Streams.Where(x => x.BetaTester == true);
+            }
+            else
+            {
+                streams = context.Streams.Where(x => x.BetaTester == false);
+            }
+
+            foreach (Streams stream in streams)
+            {
+                streamList.Add(stream.StreamerUsername);
+            }
+
+            return streamList;
         }
     }
 }
