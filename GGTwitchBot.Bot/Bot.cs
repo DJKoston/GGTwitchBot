@@ -37,10 +37,10 @@ namespace GGTwitchBot.Bot
 
         public int rawrCount = 0;
 
-        public bool newQuickBallTimer = true;
-        public bool newTimerBallTimer = true;
-        public System.Timers.Timer quickBallTimer = new();
-        public System.Timers.Timer timerBallTimer = new();
+        //public bool newQuickBallTimer = true;
+        //public bool newTimerBallTimer = true;
+        //public System.Timers.Timer quickBallTimer = new();
+        //public System.Timers.Timer timerBallTimer = new();
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
@@ -1247,7 +1247,7 @@ namespace GGTwitchBot.Bot
                     var quickBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) - 10000;
                     var timerBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) + 80000;
 
-                    //Initialise QuickBall Timer
+                    /*//Initialise QuickBall Timer
                     quickBallTimer.Enabled = true;
                     quickBallTimer.Elapsed += QuickBallTimerElapsed;
                     quickBallTimer.Interval = quickBallCountdown;
@@ -1259,7 +1259,7 @@ namespace GGTwitchBot.Bot
                     timerBallTimer.Elapsed += TimerBallTimerElapsed;
                     timerBallTimer.Interval = timerBallCountdown;
                     timerBallTimer.AutoReset = true;
-                    timerBallTimer.Start();
+                    timerBallTimer.Start();*/
                 }
             }
 
@@ -1279,7 +1279,7 @@ namespace GGTwitchBot.Bot
                     var quickBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) - 10000;
                     var timerBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) + 80000;
 
-                    //Initialise QuickBall Timer
+                    /*//Initialise QuickBall Timer
                     quickBallTimer.Enabled = true;
                     quickBallTimer.Elapsed += QuickBallTimerElapsed;
                     quickBallTimer.Interval = quickBallCountdown;
@@ -1291,7 +1291,7 @@ namespace GGTwitchBot.Bot
                     timerBallTimer.Elapsed += TimerBallTimerElapsed;
                     timerBallTimer.Interval = timerBallCountdown;
                     timerBallTimer.AutoReset = true;
-                    timerBallTimer.Start();
+                    timerBallTimer.Start();*/
                 }
             }
 
@@ -1308,7 +1308,7 @@ namespace GGTwitchBot.Bot
             }
         }
 
-        private void TimerBallTimerElapsed(object sender, ElapsedEventArgs e)
+        /*private void TimerBallTimerElapsed(object sender, ElapsedEventArgs e)
         {
             if (newTimerBallTimer)
             {
@@ -1344,7 +1344,7 @@ namespace GGTwitchBot.Bot
             }
 
             Log($"Quick Ball Timer: Notification sent to {liveStreams.Count} channels.");
-        }
+        }*/
 
         private void OnStreamOffline(object sender, OnStreamOfflineArgs e)
         {
