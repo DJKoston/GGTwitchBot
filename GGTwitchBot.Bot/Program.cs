@@ -4,15 +4,28 @@
     {
         public static void Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+            string envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            
+            CreateHostBuilder(args, envName).Build().Run();
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
+        public static IHostBuilder CreateHostBuilder(string[] args, string envName) =>
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
-                    webBuilder.UseUrls("http://*:7002");
+                    if(envName == "Production")
+                    {
+                        webBuilder.UseUrls("http://*:7002");
+                    }
+                    else if(envName == "Beta")
+                    {
+                        webBuilder.UseUrls("http://*:7004");
+                    }
+                    else
+                    {
+                        webBuilder.UseUrls("http://*:7000");
+                    }
                 });
     }
 }

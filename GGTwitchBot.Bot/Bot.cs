@@ -44,9 +44,9 @@ namespace GGTwitchBot.Bot
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
-            environmentName = "Beta";
+            environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-            if(environmentName =="Development") 
+            if (environmentName =="Development") 
             {
                 pokeBotUsername = "djkoston";
             }
