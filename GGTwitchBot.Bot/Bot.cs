@@ -10,6 +10,7 @@ using TwitchLib.Communication.Interfaces;
 using TwitchLib.Api.Services;
 using System.Timers;
 using TwitchLib.Api.Services.Events.LiveStreamMonitor;
+using System.Linq;
 
 namespace GGTwitchBot.Bot
 {
@@ -37,16 +38,16 @@ namespace GGTwitchBot.Bot
 
         public int rawrCount = 0;
 
-        //public bool newQuickBallTimer = true;
-        //public bool newTimerBallTimer = true;
-        //public System.Timers.Timer quickBallTimer = new();
-        //public System.Timers.Timer timerBallTimer = new();
+        public bool newQuickBallTimer = true;
+        public bool newTimerBallTimer = true;
+        public System.Timers.Timer quickBallTimer = new();
+        public System.Timers.Timer timerBallTimer = new();
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
             environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-            if (environmentName =="Development") 
+            if (environmentName == "Development")
             {
                 pokeBotUsername = "djkoston";
             }
@@ -59,6 +60,39 @@ namespace GGTwitchBot.Bot
             Log("Logging Started.");
             Log($"Bot Version: {botVersion}");
             Log($"Environment Name: {environmentName}");
+
+            HttpClient client = new();
+
+            Log("Getting PCG Timer Information...");
+            using (Stream dataStream = client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/").Result)
+            {
+                StreamReader reader = new(dataStream);
+
+                string responseFromServer = reader.ReadToEnd();
+
+                var pcgAPI = JObject.Parse(responseFromServer);
+                var quickBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) - 10) * 1000;
+                var timerBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) + 80) * 1000;
+
+                Log("Creating Quick Ball Timer...");
+                //Initialise QuickBall Timer
+                quickBallTimer.Enabled = true;
+                quickBallTimer.Elapsed += QuickBallTimerElapsed;
+                quickBallTimer.Interval = quickBallCountdown;
+                quickBallTimer.AutoReset = true;
+                quickBallTimer.Start();
+                Log("Quick Ball Timer Started.");
+
+                Log("Creating Timer Ball Timer...");
+                //Initialise TimerBall Timer
+                timerBallTimer.Enabled = true;
+                timerBallTimer.Elapsed += TimerBallTimerElapsed;
+                timerBallTimer.Interval = timerBallCountdown;
+                timerBallTimer.AutoReset = true;
+                timerBallTimer.Start();
+                Log("Timer Ball Timer Started.");
+            }
+            Log("PCG Timers Created.");
 
             Log("Starting PokeApi Client...");
             pokeClient = new PokeApiClient();
@@ -1224,91 +1258,44 @@ namespace GGTwitchBot.Bot
         {
             allPokemon = _pcgService.GetAllPokemon();
 
-            if (environmentName == "Beta")
+            Log($"Bot is currently in {GGTwitch.JoinedChannels.Count} channel(s).");
+
+            if ((GGTwitch.JoinedChannels.Count == 1 && GGTwitch.JoinedChannels.First(x => x.Channel != null).Channel == "generationgamersttv") || GGTwitch.JoinedChannels.Count == 0)
             {
-                var betaStreams = _streamService.GetBetaStreamsToConnect();
-
-                if (betaStreams.Count == 0) { Log("No Beta Streams to connect to.", fail); return; }
-
-                foreach (Streams betaStream in betaStreams)
+                if (environmentName == "Beta")
                 {
-                    GGTwitch.JoinChannel(betaStream.StreamerUsername);
+                    var betaStreams = _streamService.GetBetaStreamsToConnect();
+
+                    if (betaStreams.Count == 0) { Log("No Beta Streams to connect to.", fail); return; }
+
+                    foreach (Streams betaStream in betaStreams)
+                    {
+                        GGTwitch.JoinChannel(betaStream.StreamerUsername);
+                    }
                 }
 
-                HttpClient client = new();
-
-                using (Stream dataStream = client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/").Result)
+                else if (environmentName == "Development")
                 {
-                    StreamReader reader = new(dataStream);
-
-                    string responseFromServer = reader.ReadToEnd();
-
-                    var pcgAPI = JObject.Parse(responseFromServer);
-                    var quickBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) - 10000;
-                    var timerBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) + 80000;
-
-                    /*//Initialise QuickBall Timer
-                    quickBallTimer.Enabled = true;
-                    quickBallTimer.Elapsed += QuickBallTimerElapsed;
-                    quickBallTimer.Interval = quickBallCountdown;
-                    quickBallTimer.AutoReset = true;
-                    quickBallTimer.Start();
-
-                    //Initialise TimerBall Timer
-                    timerBallTimer.Enabled = true;
-                    timerBallTimer.Elapsed += TimerBallTimerElapsed;
-                    timerBallTimer.Interval = timerBallCountdown;
-                    timerBallTimer.AutoReset = true;
-                    timerBallTimer.Start();*/
+                    Log("Bot Running in Development Mode, no streams will be connected to at this time.");
                 }
-            }
 
-            else if(environmentName == "Development")
-            {
-                Log("Bot Running in Development Mode, no streams will be connected to at this time.");
-
-                HttpClient client = new();
-
-                using (Stream dataStream = client.GetStreamAsync("https://poketwitch.bframework.de/info/events/last_spawn/").Result)
+                else
                 {
-                    StreamReader reader = new(dataStream);
+                    var streams = _streamService.GetNonBetaStreamsToConnect();
 
-                    string responseFromServer = reader.ReadToEnd();
+                    if (streams.Count == 0) { Log("No Streams to connect to.", fail); return; }
 
-                    var pcgAPI = JObject.Parse(responseFromServer);
-                    var quickBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) - 10000;
-                    var timerBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) * 1000) + 80000;
-
-                    /*//Initialise QuickBall Timer
-                    quickBallTimer.Enabled = true;
-                    quickBallTimer.Elapsed += QuickBallTimerElapsed;
-                    quickBallTimer.Interval = quickBallCountdown;
-                    quickBallTimer.AutoReset = true;
-                    quickBallTimer.Start();
-
-                    //Initialise TimerBall Timer
-                    timerBallTimer.Enabled = true;
-                    timerBallTimer.Elapsed += TimerBallTimerElapsed;
-                    timerBallTimer.Interval = timerBallCountdown;
-                    timerBallTimer.AutoReset = true;
-                    timerBallTimer.Start();*/
+                    foreach (Streams stream in streams)
+                    {
+                        GGTwitch.JoinChannel(stream.StreamerUsername);
+                    }
                 }
-            }
 
-            else
-            {
-                var streams = _streamService.GetNonBetaStreamsToConnect();
-
-                if (streams.Count == 0) { Log("No Streams to connect to.", fail); return; }
-
-                foreach (Streams stream in streams)
-                {
-                    GGTwitch.JoinChannel(stream.StreamerUsername);
-                }
+                Log($"Bot is currently in {GGTwitch.JoinedChannels.Count} channel(s).");
             }
         }
 
-        /*private void TimerBallTimerElapsed(object sender, ElapsedEventArgs e)
+        private void TimerBallTimerElapsed(object sender, ElapsedEventArgs e)
         {
             if (newTimerBallTimer)
             {
@@ -1344,7 +1331,7 @@ namespace GGTwitchBot.Bot
             }
 
             Log($"Quick Ball Timer: Notification sent to {liveStreams.Count} channels.");
-        }*/
+        }
 
         private void OnStreamOffline(object sender, OnStreamOfflineArgs e)
         {
