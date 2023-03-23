@@ -43,6 +43,9 @@ namespace GGTwitchBot.Bot
         public System.Timers.Timer quickBallTimer = new();
         public System.Timers.Timer timerBallTimer = new();
 
+        public int quickBallCounter = 0;
+        public int timerBallCounter = 0;
+
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
             environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
