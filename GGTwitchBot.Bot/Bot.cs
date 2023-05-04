@@ -1081,6 +1081,16 @@ namespace GGTwitchBot.Bot
                 return;
             }
 
+            if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.ToLower().Contains("You don't have a trainer pass yet"))
+            {
+                var username = e.ChatMessage.Message.Split(" ", StringSplitOptions.None)[0].Replace("@", "");
+
+                await _pokecatchService.RemoveCatchAsync(e.ChatMessage.Channel, username);
+                Log($"{username}'s ball was returned to them in {e.ChatMessage.Channel}");
+
+                return;
+            }
+
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.ToLower().Contains("has been caught by:"))
             {
                 var messageParse1 = e.ChatMessage.Message.Replace($"{pcgSpawn.Name} ", "").Replace(" (SHINY✨)", "").Replace(" (🪨)", "");

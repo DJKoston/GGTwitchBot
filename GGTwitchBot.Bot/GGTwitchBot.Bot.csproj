@@ -6,17 +6,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <Configurations>Debug;Release</Configurations>
-    <Version>2023.3.23.6459</Version>
+    <Version>2023.4.9.1513</Version>
     <UserSecretsId>29eaafd6-987c-420b-98c6-42f0c45f6b1a</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <AssemblyName>TwitchBot</AssemblyName>
-    <IncrementVersionOnBuild>yyyy.MM.dd.+</IncrementVersionOnBuild>
+	<IncrementVersionOnBuild>yyyy.MM.dd.HHmm</IncrementVersionOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Live_Build|AnyCPU'">
     <Optimize>True</Optimize>
   </PropertyGroup>
-
+	
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.14">
       <PrivateAssets>all</PrivateAssets>
