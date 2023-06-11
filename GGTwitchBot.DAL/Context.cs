@@ -9,5 +9,6 @@ namespace GGTwitchBot.DAL
         public DbSet<Streams> Streams { get; set; }
         public DbSet<Pokecatches> Pokecatches { get; set; }
         public DbSet<PCG> PCG { get; set; }
+        public DbSet<GameQueue> GameQueue { get; set; }
     }
 }
