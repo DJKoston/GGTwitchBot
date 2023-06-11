@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <Configurations>Debug;Release</Configurations>
-    <Version>2023.4.9.1513</Version>
+    <Version>2023.6.11.2038</Version>
     <UserSecretsId>29eaafd6-987c-420b-98c6-42f0c45f6b1a</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <AssemblyName>TwitchBot</AssemblyName>

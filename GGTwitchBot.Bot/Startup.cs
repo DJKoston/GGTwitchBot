@@ -27,6 +27,7 @@ namespace GGTwitchBot.Bot
             services.AddScoped<IStreamerService, StreamService>();
             services.AddScoped<IPokecatchService, PokecatchService>();
             services.AddScoped<IPCGService, PCGService>();
+            services.AddScoped<IGameQueueService, GameQueueService>();
 
             services.AddRazorPages();
 

@@ -38,17 +38,18 @@ namespace GGTwitchBot.Bot
 
         public int rawrCount = 0;
 
-        public bool newQuickBallTimer = true;
-        public bool newTimerBallTimer = true;
-        public System.Timers.Timer quickBallTimer = new();
-        public System.Timers.Timer timerBallTimer = new();
+        //public bool newQuickBallTimer = true;
+        //public bool newTimerBallTimer = true;
+        //public System.Timers.Timer quickBallTimer = new();
+        //public System.Timers.Timer timerBallTimer = new();
 
-        public int quickBallCounter = 0;
-        public int timerBallCounter = 0;
+        //public int quickBallCounter = 0;
+        //public int timerBallCounter = 0;
 
         public Bot(IServiceProvider services, IConfiguration configuration)
         {
-            environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            //environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            environmentName = "Beta";
 
             if (environmentName == "Development")
             {
@@ -77,7 +78,7 @@ namespace GGTwitchBot.Bot
                 var quickBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) - 10) * 1000;
                 var timerBallCountdown = (Convert.ToInt32(pcgAPI["next_spawn"]) + 80) * 1000;
 
-                Log("Creating Quick Ball Timer...");
+                /*Log("Creating Quick Ball Timer...");
                 //Initialise QuickBall Timer
                 quickBallTimer.Enabled = true;
                 quickBallTimer.Elapsed += QuickBallTimerElapsed;
@@ -93,7 +94,7 @@ namespace GGTwitchBot.Bot
                 timerBallTimer.Interval = timerBallCountdown;
                 timerBallTimer.AutoReset = true;
                 timerBallTimer.Start();
-                Log("Timer Ball Timer Started.");
+                Log("Timer Ball Timer Started.");*/
             }
             Log("PCG Timers Created.");
 
@@ -105,6 +106,7 @@ namespace GGTwitchBot.Bot
             _streamService = services.GetService<IStreamerService>();
             _pokecatchService = services.GetService<IPokecatchService>();
             _pcgService = services.GetService<IPCGService>();
+            _gameQueueService = services.GetService<IGameQueueService>();
             Log("Loaded Core Services.");
 
             Log("Creating Twitch API Access...");
@@ -198,6 +200,7 @@ namespace GGTwitchBot.Bot
         private readonly IStreamerService _streamService;
         private readonly IPokecatchService _pokecatchService;
         private readonly IPCGService _pcgService;
+        private readonly IGameQueueService _gameQueueService;
 
         private async void OnCommandReceived(object sender, OnChatCommandReceivedArgs e)
         {
@@ -293,6 +296,19 @@ namespace GGTwitchBot.Bot
                 }
 
                 return;
+            }
+            if (command == "botver")
+            {
+                var botVersion = typeof(Bot).Assembly.GetName().Version.ToString();
+
+                if (environmentName == "Beta")
+                {
+                    GGSendMessage(streamerUserName, $"You are currently connected to: GG-Bot Beta Version: {botVersion}");
+                }
+                else
+                {
+                    GGSendMessage(streamerUserName, $"You are currently connected to: GG-Bot Version: {botVersion}");
+                }
             }
             if (command == "dadjoke")
             {
@@ -542,6 +558,12 @@ namespace GGTwitchBot.Bot
                 GGSendMessage(streamerUserName, "<3 I am Groo... I mean, I am here! <3");
 
                 return;
+            }
+            if (command == "quiztimer" && (userName == "djkoston" || userName == "wolfyeon"))
+            {
+                GGSendMessage(streamerUserName, "djkostRGBBlob Quiz Timer Started djkostRGBBlob");
+                await Task.Delay(120000);
+                GGSendMessage(streamerUserName, "djkostRGBBlob Time is up! djkostRGBBlob");
             }
 
             //PCG Based Commands
@@ -935,6 +957,48 @@ namespace GGTwitchBot.Bot
 
                 GGSendMessage(streamerUserName, $"*rawrs back* - I have rawred {rawrCount} times since I've been alived");
             }
+
+            // MultiChannel Queue
+            if (command == "join" && (streamerUserName == "djkoston" || streamerUserName == "ap0calyptic"))
+            {
+                var isInQueue = _gameQueueService.CheckIfInQueue(userName);
+
+                if(isInQueue) { GGSendMessage(streamerUserName, $"@{userDisplayName}, You are already in the Game Queue."); return; }
+
+                _gameQueueService.AddToQueue(userName);
+
+                GGSendMessage(streamerUserName, $"@{userDisplayName}, You are now in the Game Queue.");
+
+                return;
+            }
+
+            if (command == "next" && (streamerUserName == "djkoston" || streamerUserName == "ap0calyptic"))
+            {
+                var nextUser = _gameQueueService.GetNextInQueue();
+
+                if(nextUser == null) 
+                {
+                    GGSendMessage("djkoston", $"@DJKoston - The Queue is Empty.");
+                    GGSendMessage("ap0calyptic", $"@AP0CALYPTIC - The Queue is Empty.");
+                    return;
+                }
+
+                GGSendMessage("djkoston", $"@{nextUser} - You're up! Get ready to enjoy 2 rounds of Fortnite with the boys!");
+                GGSendMessage("ap0calyptic", $"@{nextUser} - You're up! Get ready to enjoy 2 rounds of Fortnite with the boys!");
+                return;
+            }
+
+            if (command == "leavequeue" && (streamerUserName == "djkoston" || streamerUserName == "ap0calyptic"))
+            {
+                var isInQueue = _gameQueueService.CheckIfInQueue(userName);
+
+                if (!isInQueue) { GGSendMessage(streamerUserName, $"@{userDisplayName}, You are not in the Game Queue."); return; }
+
+                _gameQueueService.RemoveFromQueue(userName);
+                GGSendMessage(streamerUserName, $"@{userDisplayName}, You have been removed from the Game Queue.");
+
+                return;
+            }
         }
 
         private async void OnMessageReceived(object sender, OnMessageReceivedArgs e)
@@ -990,8 +1054,11 @@ namespace GGTwitchBot.Bot
                     GGSendMessage(e.ChatMessage.Channel, $"[#{pcgSpawn.DexNumber} {pcgSpawn.Name}] -> [Type] {pcgSpawn.Type} [Tier] {pcgSpawn.Tier} [Gen] {pcgSpawn.Generation} [Dex] {pcgSpawn.DexInfo} [Ball] {pcgSpawn.SuggestedBalls} [BST] {pcgSpawn.BST}");
 
                     var weeklyFile = File.ReadAllLines("/home/container/weekly.txt");
+                    var eventFile = File.ReadAllLines("/home/container/event.txt");
                     var weeklys = new List<string>(weeklyFile);
+                    var eventMissions = new List<string>(eventFile);
                     weeklys.RemoveRange(0, 13);
+                    eventMissions.RemoveRange(0, 13);
 
                     if (weeklys.Count != 0)
                     {
@@ -1033,6 +1100,51 @@ namespace GGTwitchBot.Bot
                                 if (weeklyCheck[2] == "<" && pcgWeight < weightNumber)
                                 {
                                     GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Weekly Mon! - {weeklyCheck[1]} Pokemon Lighter than {weightNumber}lbs! djkostRGBBlob");
+                                }
+                            }
+                        }
+                    }
+
+                    if (eventMissions.Count != 0)
+                    {
+                        foreach (var eventMission in eventMissions)
+                        {
+                            var eventCheck = eventMission.Split(" ", StringSplitOptions.None).ToList<string>();
+                            var category = eventCheck[0];
+
+                            if (category.ToLower() == "types" && pcgSpawn.Type.Contains(eventCheck[2]))
+                            {
+                                GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Event Mon! - {eventCheck[1]} {eventCheck[2]} Types! djkostRGBBlob");
+                            }
+
+                            if (category.ToLower() == "bst")
+                            {
+                                var bstNumber = Convert.ToInt32(eventCheck[3]);
+
+                                if (eventCheck[2] == ">" && pcgSpawn.BST >= bstNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Event Mon! - {eventCheck[1]} Pokemon with {bstNumber} BST or Higher! djkostRGBBlob");
+                                }
+
+                                if (eventCheck[2] == "<" && pcgSpawn.BST <= bstNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Event Mon! - {eventCheck[1]} Pokemon with {bstNumber} BST or Lower! djkostRGBBlob");
+                                }
+                            }
+
+                            if (category.ToLower() == "weight")
+                            {
+                                var weightNumber = Convert.ToDouble(eventCheck[3]);
+                                var pcgWeight = Convert.ToDouble(pcgSpawn.Weight.Replace("Lbs", ""));
+
+                                if (eventCheck[2] == ">" && pcgWeight > weightNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Event Mon! - {eventCheck[1]} Pokemon Heavier than {weightNumber}lbs! djkostRGBBlob");
+                                }
+
+                                if (eventCheck[2] == "<" && pcgWeight < weightNumber)
+                                {
+                                    GGSendMessage(e.ChatMessage.Channel, $"djkostRGBBlob Event Mon! - {eventCheck[1]} Pokemon Lighter than {weightNumber}lbs! djkostRGBBlob");
                                 }
                             }
                         }
@@ -1093,7 +1205,7 @@ namespace GGTwitchBot.Bot
 
             if (e.ChatMessage.Username == pokeBotUsername && e.ChatMessage.Message.ToLower().Contains("has been caught by:"))
             {
-                var messageParse1 = e.ChatMessage.Message.Replace($"{pcgSpawn.Name} ", "").Replace(" (SHINY✨)", "").Replace(" (🪨)", "");
+                var messageParse1 = e.ChatMessage.Message.Replace($"{pcgSpawn.Name} ", "").Replace(" (SHINY✨)", "").Replace(" 🪨", "");
                 var messageParse3 = messageParse1.Replace("has been caught by: ", "");
 
                 var catchList = messageParse3.Split(", ").ToList();
@@ -1308,7 +1420,7 @@ namespace GGTwitchBot.Bot
             }
         }
 
-        private void TimerBallTimerElapsed(object sender, ElapsedEventArgs e)
+        /*private void TimerBallTimerElapsed(object sender, ElapsedEventArgs e)
         {
             if (newTimerBallTimer)
             {
@@ -1344,7 +1456,7 @@ namespace GGTwitchBot.Bot
             }
 
             Log($"Quick Ball Timer: Notification sent to {liveStreams.Count} channels.");
-        }
+        }*/
 
         private void OnStreamOffline(object sender, OnStreamOfflineArgs e)
         {
